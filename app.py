@@ -3,24 +3,34 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# Sayfa Yapılandırması (Geniş Ekran Modu)
+# Sayfa Yapılandırması
 st.set_page_config(
     page_title="Hedef ve Verimlilik Paneli", 
     layout="wide", 
     page_icon="📊",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 EXCEL_FILE = "veri.xlsx"
 
-# Custom CSS - Sidebar Gizleme, Koyu Tasarım + Fuşya Tablo Çerçeveleri
+# Önbellek Temizleme Fonksiyonu
+@st.cache_data(ttl=300)
+def load_data(file_path):
+    if os.path.exists(file_path):
+        return pd.ExcelFile(file_path)
+    return None
+
+# Custom CSS - Koyu Tasarım + Fuşya Çerçeveler + Sol Menü Tasarımı
 st.markdown("""
     <style>
-    /* Sol Menüyü (Sidebar) Tamamen Gizle */
-    [data-testid="stSidebar"] { display: none !important; }
-    [data-testid="collapsedControl"] { display: none !important; }
-    
     .stApp { background-color: #0e1117; }
+    
+    /* Sol Menü (Sidebar) Özel Tasarımı */
+    [data-testid="stSidebar"] {
+        background-color: #131722 !important;
+        border-right: 1px solid #1e222d !important;
+    }
+    
     th, td { text-align: center !important; }
     div[data-testid="stTable"] table, div[data-testid="stDataFrame"] table { width: 100%; text-align: center !important; }
     div[data-testid="stTable"] th, div[data-testid="stDataFrame"] th { text-align: center !important; background-color: #1a1c23 !important; color: #00e5ff !important; }
@@ -63,17 +73,48 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Performans ve Özet Tablolar Paneli")
+excel_file = load_data(EXCEL_FILE)
 
-if os.path.exists(EXCEL_FILE):
-    excel_file = pd.ExcelFile(EXCEL_FILE)
+if excel_file is not None:
     sheet_names = excel_file.sheet_names
-    df = pd.read_excel(excel_file, sheet_name=0)
+    df_raw = pd.read_excel(excel_file, sheet_name=0)
 
     # HARİÇ TUTULACAK PERSONEL
     haric_personel = ['CRM Admin', 'Luron AI API', 'Aleyna Daşdemir', 'Zeynep Güzel']
-    if 'Görevi Alan' in df.columns:
-        df = df[~df['Görevi Alan'].astype(str).isin(haric_personel)].copy()
+    
+    if 'Görevi Alan' in df_raw.columns:
+        df_raw = df_raw[~df_raw['Görevi Alan'].astype(str).isin(haric_personel)].copy()
+        temsilci_listesi = ["Tümü"] + sorted([str(x) for x in df_raw['Görevi Alan'].dropna().unique()])
+    else:
+        temsilci_listesi = ["Tümü"]
+
+    # --- SOL MENÜ (SIDEBAR) ---
+    st.sidebar.header("👤 Temsilci Paneli")
+    secilen_temsilci = st.sidebar.selectbox(
+        "Temsilci İsmi Yazın veya Seçin:",
+        options=temsilci_listesi,
+        index=0
+    )
+
+    # Güncelleme Butonu
+    if st.sidebar.button("🔄 Güncelle", use_container_width=True, type="primary"):
+        st.cache_data.clear()
+        st.rerun()
+
+    st.sidebar.markdown("---")
+    if secilen_temsilci != "Tümü":
+        st.sidebar.info(f"🎯 Aktif Temsilci:\n**{secilen_temsilci}**")
+    else:
+        st.sidebar.caption("🌐 Tüm şirket verileri gösteriliyor.")
+
+    # Temsilci Filtreleme Uygula
+    if secilen_temsilci != "Tümü" and 'Görevi Alan' in df_raw.columns:
+        df = df_raw[df_raw['Görevi Alan'] == secilen_temsilci].copy()
+    else:
+        df = df_raw.copy()
+
+    # --- ANA SAYFA ---
+    st.title("📊 Performans ve Özet Tablolar Paneli")
 
     # Genel KPI Hesaplamaları
     toplam_gorev = len(df)
@@ -93,15 +134,15 @@ if os.path.exists(EXCEL_FILE):
         pie_data = pd.DataFrame({'Durum': ['Tamamlandı', 'Tamamlanmadı'], 'Adet': [tamamlanan, tamamlanmayan]})
         fig_pie = px.pie(pie_data, values='Adet', names='Durum', hole=0.4, color='Durum',
                          color_discrete_map={'Tamamlandı': '#00E676', 'Tamamlanmadı': '#FF1744'},
-                         title="Genel Görev Tamamlanma Dağılımı")
+                         title="Görev Tamamlanma Dağılımı")
         fig_pie.update_layout(template="plotly_dark", margin=dict(l=20, r=20, t=40, b=20), height=180, font=dict(size=12))
         fig_pie.update_traces(textinfo='percent+label')
         st.plotly_chart(fig_pie, use_container_width=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ⚡ ŞİRKET GENEL PERFORMANS MATRİSİ
-    st.markdown("### ⚡ Şirket Genel Performans Matrisi")
+    # ⚡ PERFORMANS MATRİSİ
+    st.markdown("### ⚡ Şirket / Temsilci Performans Matrisi")
 
     m_lead_h, m_lead_g, m_lead_o = "38,200", "14,283", "%37.4"
     m_rez_h, m_rez_g, m_rez_o = "808", "646", "%80.0"
@@ -215,6 +256,9 @@ if os.path.exists(EXCEL_FILE):
         if ty_sheet is not None:
             ty_df = pd.read_excel(excel_file, sheet_name=ty_sheet)
             ty_df = ty_df[~ty_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+            if secilen_temsilci != "Tümü":
+                ty_df = ty_df[ty_df.iloc[:, 0].astype(str) == secilen_temsilci]
+
             for idx, row in ty_df.iterrows():
                 temsilci_adi = str(row.iloc[0])
                 yorum_metni = str(row.iloc[1]) if len(row) > 1 and pd.notnull(row.iloc[1]) else "Yorum bulunamadı."
@@ -250,19 +294,27 @@ if os.path.exists(EXCEL_FILE):
         if 'İl' in df.columns and 'Marka' in df.columns:
             st.table(pd.crosstab(df['İl'], df['Marka'], margins=True, margins_name="TOPLAM"))
 
+    # Helper function for sheet filtering
+    def filter_sheet_df(sheet_keyword):
+        target_s = None
+        for s in sheet_names:
+            name_clean = str(s).strip().lower().replace('ı', 'i').replace('ş', 's').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+            if sheet_keyword in name_clean:
+                target_s = s
+                break
+        if target_s is not None:
+            s_df = pd.read_excel(excel_file, sheet_name=target_s)
+            s_df = s_df[~s_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+            if secilen_temsilci != "Tümü":
+                s_df = s_df[s_df.iloc[:, 0].astype(str) == secilen_temsilci]
+            return s_df
+        return None
+
     # 5. REZERVASYON HEDEF
     with tab5:
         st.subheader("🎯 Rezervasyon Hedef Tablosu ve Performans Grafiği")
-        target_sheet = None
-        for s in sheet_names:
-            name_clean = str(s).strip().lower().replace('ı', 'i').replace('ş', 's')
-            if "rezervasyon" in name_clean and "hedef" in name_clean:
-                target_sheet = s
-                break
-
-        if target_sheet is not None:
-            rez_df = pd.read_excel(excel_file, sheet_name=target_sheet)
-            rez_df = rez_df[~rez_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+        rez_df = filter_sheet_df("rezervasyon")
+        if rez_df is not None and not rez_df.empty:
             oran_col = [c for c in rez_df.columns if "oran" in str(c).lower() or "%" in str(c)]
             if oran_col:
                 target_oran_col = oran_col[0]
@@ -275,16 +327,8 @@ if os.path.exists(EXCEL_FILE):
     # 6. SATIŞ HEDEF
     with tab6:
         st.subheader("💰 Satış Hedef Tablosu ve Performans Grafiği")
-        satis_sheet = None
-        for s in sheet_names:
-            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if "satis" in name_norm and "hedef" in name_norm:
-                satis_sheet = s
-                break
-
-        if satis_sheet is not None:
-            satis_df = pd.read_excel(excel_file, sheet_name=satis_sheet)
-            satis_df = satis_df[~satis_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+        satis_df = filter_sheet_df("satis")
+        if satis_df is not None and not satis_df.empty:
             satis_oran_col = [c for c in satis_df.columns if "oran" in str(c).lower() or "%" in str(c)]
             if satis_oran_col:
                 target_satis_oran_col = satis_oran_col[0]
@@ -297,16 +341,8 @@ if os.path.exists(EXCEL_FILE):
     # 7. GELME ORANI HEDEF
     with tab7:
         st.subheader("🚶‍♂️ Gelme Oranı Hedef Tablosu ve Performans Grafiği")
-        gelme_sheet = None
-        for s in sheet_names:
-            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if "gelme" in name_norm and "oran" in name_norm:
-                gelme_sheet = s
-                break
-
-        if gelme_sheet is not None:
-            gelme_df = pd.read_excel(excel_file, sheet_name=gelme_sheet)
-            gelme_df = gelme_df[~gelme_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+        gelme_df = filter_sheet_df("gelme")
+        if gelme_df is not None and not gelme_df.empty:
             if len(gelme_df.columns) > 2:
                 gerceklesen_col = gelme_df.columns[2]
                 raw_gerceklesen = gelme_df[gerceklesen_col].apply(lambda x: x * 100 if isinstance(x, (int, float)) and x <= 2 else (x if isinstance(x, (int, float)) else 0))
@@ -318,16 +354,8 @@ if os.path.exists(EXCEL_FILE):
     # 8. KRİTER DIŞI HEDEF
     with tab8:
         st.subheader("🚫 Kriter Dışı Hedef Tablosu ve Performans Grafiği")
-        kriter_sheet = None
-        for s in sheet_names:
-            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if "kriter" in name_norm and "hedef" in name_norm:
-                kriter_sheet = s
-                break
-
-        if kriter_sheet is not None:
-            kriter_df = pd.read_excel(excel_file, sheet_name=kriter_sheet)
-            kriter_df = kriter_df[~kriter_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+        kriter_df = filter_sheet_df("kriter")
+        if kriter_df is not None and not kriter_df.empty:
             if len(kriter_df.columns) > 2:
                 k_gerceklesen_col = kriter_df.columns[2]
                 raw_kriter = kriter_df[k_gerceklesen_col].apply(lambda x: x * 100 if isinstance(x, (int, float)) and x <= 2 else (x if isinstance(x, (int, float)) else 0))
@@ -339,17 +367,9 @@ if os.path.exists(EXCEL_FILE):
     # 9. DATA ANALİZ
     with tab9:
         st.subheader("📈 Data Analiz Tablosu ve Arama Sonuçları Grafiği")
-        da_sheet = None
-        for s in sheet_names:
-            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if "data" in name_norm and "analiz" in name_norm:
-                da_sheet = s
-                break
-
-        if da_sheet is not None:
-            da_df = pd.read_excel(excel_file, sheet_name=da_sheet)
-            da_df = da_df[~da_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+        da_df = filter_sheet_df("data")
+        if da_df is not None and not da_df.empty:
             st.dataframe(da_df.style.hide(axis="index"), use_container_width=True, height=(len(da_df) + 1) * 35 + 38)
 
 else:
-    st.error("⚠️ Proje klasöründe 'veri.xlsx' bulunamadı. Lütfen dosya adının 'veri.xlsx.xlsx' değil, 'veri.xlsx' olduğundan emin olun.")
+    st.error("⚠️ Proje klasöründe 'veri.xlsx' bulunamadı.")
