@@ -13,7 +13,6 @@ st.set_page_config(
 
 EXCEL_FILE = "veri.xlsx"
 
-# Önbellek Temizleme Fonksiyonu - Excel Sayfalarını Okuma
 @st.cache_data(ttl=300)
 def get_all_sheets(file_path):
     if os.path.exists(file_path):
@@ -26,7 +25,6 @@ st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     
-    /* Sol Menü (Sidebar) Özel Tasarımı */
     [data-testid="stSidebar"] {
         background-color: #131722 !important;
         border-right: 1px solid #1e222d !important;
@@ -39,7 +37,6 @@ st.markdown("""
     [data-testid="stDataFrame"] [role="gridcell"], [data-testid="stDataFrame"] [role="columnheader"] { justify-content: center !important; text-align: center !important; }
     div[data-testid="stDataFrame"] > div { max-height: none !important; }
 
-    /* Fuşya Renkli Tablo Çerçeveleri */
     div[data-testid="stDataFrame"], div[data-testid="stTable"] {
         border: 2px solid #FF007F !important;
         border-radius: 12px !important;
@@ -49,7 +46,6 @@ st.markdown("""
         overflow: hidden !important;
     }
 
-    /* Renkli Sekme (Tab) Butonları */
     button[data-baseweb="tab-tab-list"] { flex-wrap: wrap !important; gap: 10px !important; justify-content: flex-start !important; }
     button[data-baseweb="tab"] { white-space: normal !important; height: auto !important; padding: 10px 16px !important; border-radius: 8px !important; border-style: solid !important; border-width: 1.5px !important; font-weight: 600 !important; transition: all 0.3s ease !important; }
 
@@ -65,7 +61,6 @@ st.markdown("""
 
     button[data-baseweb="tab"]:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15); }
 
-    /* Performans Matrisi Kart Tasarımı */
     .matrix-card { background-color: #131722; border: 1px solid #1e222d; border-radius: 12px; padding: 16px; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .matrix-title { color: #00b0ff; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
     .matrix-target { color: #8a8d93; font-size: 12px; margin-top: 3px; }
@@ -80,7 +75,6 @@ if sheets_dict is not None:
     sheet_names = list(sheets_dict.keys())
     df_raw = sheets_dict[sheet_names[0]].copy()
 
-    # HARİÇ TUTULACAK PERSONEL
     haric_personel = ['CRM Admin', 'Luron AI API', 'Aleyna Daşdemir', 'Zeynep Güzel']
     
     if 'Görevi Alan' in df_raw.columns:
@@ -97,7 +91,6 @@ if sheets_dict is not None:
         index=0
     )
 
-    # Güncelleme Butonu
     if st.sidebar.button("🔄 Güncelle", use_container_width=True, type="primary"):
         st.cache_data.clear()
         st.rerun()
@@ -108,16 +101,34 @@ if sheets_dict is not None:
     else:
         st.sidebar.caption("🌐 Tüm şirket verileri gösteriliyor.")
 
-    # Temsilci Filtreleme Uygula
+    # Filtreli Ana Data
     if secilen_temsilci != "Tümü" and 'Görevi Alan' in df_raw.columns:
         df = df_raw[df_raw['Görevi Alan'] == secilen_temsilci].copy()
     else:
         df = df_raw.copy()
 
+    # Yardımcı Filtreleme Fonksiyonu
+    def get_sheet_data(sheet_keyword):
+        target_s = None
+        for s in sheet_names:
+            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+            if sheet_keyword in name_norm:
+                target_s = s
+                break
+        if target_s is not None:
+            res_df = sheets_dict[target_s].copy()
+            if len(res_df.columns) > 0:
+                res_df = res_df[~res_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+                if secilen_temsilci != "Tümü":
+                    filtered = res_df[res_df.iloc[:, 0].astype(str) == secilen_temsilci]
+                    if not filtered.empty:
+                        return res_df.columns, filtered
+            return res_df.columns, res_df
+        return None, None
+
     # --- ANA SAYFA ---
     st.title("📊 Performans ve Özet Tablolar Paneli")
 
-    # Genel KPI Hesaplamaları
     toplam_gorev = len(df)
     tamamlanan = len(df[df['Görev Durumu'] == 'Tamamlandı']) if 'Görev Durumu' in df.columns else 0
     tamamlanmayan = toplam_gorev - tamamlanan
@@ -247,19 +258,8 @@ if sheets_dict is not None:
     # 2. TEMSİLCİ YORUMU
     with tab2:
         st.subheader("Temsilci Yorumları ve Performans Analizi")
-        ty_sheet = None
-        for s in sheet_names:
-            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if "temsilci" in name_norm and "yorum" in name_norm:
-                ty_sheet = s
-                break
-
-        if ty_sheet is not None:
-            ty_df = sheets_dict[ty_sheet].copy()
-            ty_df = ty_df[~ty_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
-            if secilen_temsilci != "Tümü":
-                ty_df = ty_df[ty_df.iloc[:, 0].astype(str) == secilen_temsilci]
-
+        _, ty_df = get_sheet_data("yorum")
+        if ty_df is not None and not ty_df.empty:
             for idx, row in ty_df.iterrows():
                 temsilci_adi = str(row.iloc[0])
                 yorum_metni = str(row.iloc[1]) if len(row) > 1 and pd.notnull(row.iloc[1]) else "Yorum bulunamadı."
@@ -295,26 +295,10 @@ if sheets_dict is not None:
         if 'İl' in df.columns and 'Marka' in df.columns:
             st.table(pd.crosstab(df['İl'], df['Marka'], margins=True, margins_name="TOPLAM"))
 
-    # Helper function for sheet filtering
-    def filter_sheet_df(sheet_keyword):
-        target_s = None
-        for s in sheet_names:
-            name_clean = str(s).strip().lower().replace('ı', 'i').replace('ş', 's').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if sheet_keyword in name_clean:
-                target_s = s
-                break
-        if target_s is not None:
-            s_df = sheets_dict[target_s].copy()
-            s_df = s_df[~s_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
-            if secilen_temsilci != "Tümü":
-                s_df = s_df[s_df.iloc[:, 0].astype(str) == secilen_temsilci]
-            return s_df
-        return None
-
     # 5. REZERVASYON HEDEF
     with tab5:
         st.subheader("🎯 Rezervasyon Hedef Tablosu ve Performans Grafiği")
-        rez_df = filter_sheet_df("rezervasyon")
+        _, rez_df = get_sheet_data("rezervasyon")
         if rez_df is not None and not rez_df.empty:
             oran_col = [c for c in rez_df.columns if "oran" in str(c).lower() or "%" in str(c)]
             if oran_col:
@@ -328,7 +312,7 @@ if sheets_dict is not None:
     # 6. SATIŞ HEDEF
     with tab6:
         st.subheader("💰 Satış Hedef Tablosu ve Performans Grafiği")
-        satis_df = filter_sheet_df("satis")
+        _, satis_df = get_sheet_data("satis")
         if satis_df is not None and not satis_df.empty:
             satis_oran_col = [c for c in satis_df.columns if "oran" in str(c).lower() or "%" in str(c)]
             if satis_oran_col:
@@ -342,7 +326,7 @@ if sheets_dict is not None:
     # 7. GELME ORANI HEDEF
     with tab7:
         st.subheader("🚶‍♂️ Gelme Oranı Hedef Tablosu ve Performans Grafiği")
-        gelme_df = filter_sheet_df("gelme")
+        _, gelme_df = get_sheet_data("gelme")
         if gelme_df is not None and not gelme_df.empty:
             if len(gelme_df.columns) > 2:
                 gerceklesen_col = gelme_df.columns[2]
@@ -355,7 +339,7 @@ if sheets_dict is not None:
     # 8. KRİTER DIŞI HEDEF
     with tab8:
         st.subheader("🚫 Kriter Dışı Hedef Tablosu ve Performans Grafiği")
-        kriter_df = filter_sheet_df("kriter")
+        _, kriter_df = get_sheet_data("kriter")
         if kriter_df is not None and not kriter_df.empty:
             if len(kriter_df.columns) > 2:
                 k_gerceklesen_col = kriter_df.columns[2]
@@ -368,7 +352,7 @@ if sheets_dict is not None:
     # 9. DATA ANALİZ
     with tab9:
         st.subheader("📈 Data Analiz Tablosu ve Arama Sonuçları Grafiği")
-        da_df = filter_sheet_df("data")
+        _, da_df = get_sheet_data("data")
         if da_df is not None and not da_df.empty:
             st.dataframe(da_df.style.hide(axis="index"), use_container_width=True, height=(len(da_df) + 1) * 35 + 38)
 
