@@ -5,7 +5,7 @@ import os
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Hedef ve Verimlilik Paneli", 
+    page_title="Performans ve Özet Tablolar Paneli", 
     layout="wide", 
     page_icon="📊",
     initial_sidebar_state="expanded"
@@ -13,23 +13,26 @@ st.set_page_config(
 
 EXCEL_FILE = "veri.xlsx"
 
+# Önbelleğe Alınmış Güvenli Veri Yükleme
 @st.cache_data(ttl=300)
-def get_all_sheets(file_path):
+def load_all_sheets(file_path):
     if os.path.exists(file_path):
         excel = pd.ExcelFile(file_path)
-        return {sheet: excel.parse(sheet) for sheet in excel.sheet_names}
+        return {s: excel.parse(s) for s in excel.sheet_names}
     return None
 
-# Custom CSS
+# Custom CSS - Koyu Tema, Fuşya Tablo Çerçeveleri ve Renkli Sekmeler
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     
+    /* Sol Menü (Sidebar) Özel Tasarımı */
     [data-testid="stSidebar"] {
         background-color: #131722 !important;
         border-right: 1px solid #1e222d !important;
     }
     
+    /* Tablo Hücrelerini Ortalama */
     th, td { text-align: center !important; }
     div[data-testid="stTable"] table, div[data-testid="stDataFrame"] table { width: 100%; text-align: center !important; }
     div[data-testid="stTable"] th, div[data-testid="stDataFrame"] th { text-align: center !important; background-color: #1a1c23 !important; color: #00e5ff !important; }
@@ -37,6 +40,7 @@ st.markdown("""
     [data-testid="stDataFrame"] [role="gridcell"], [data-testid="stDataFrame"] [role="columnheader"] { justify-content: center !important; text-align: center !important; }
     div[data-testid="stDataFrame"] > div { max-height: none !important; }
 
+    /* Fuşya Renkli Tablo Çerçeveleri */
     div[data-testid="stDataFrame"], div[data-testid="stTable"] {
         border: 2px solid #FF007F !important;
         border-radius: 12px !important;
@@ -46,6 +50,7 @@ st.markdown("""
         overflow: hidden !important;
     }
 
+    /* Renkli Sekme (Tab) Butonları */
     button[data-baseweb="tab-tab-list"] { flex-wrap: wrap !important; gap: 10px !important; justify-content: flex-start !important; }
     button[data-baseweb="tab"] { white-space: normal !important; height: auto !important; padding: 10px 16px !important; border-radius: 8px !important; border-style: solid !important; border-width: 1.5px !important; font-weight: 600 !important; transition: all 0.3s ease !important; }
 
@@ -61,6 +66,7 @@ st.markdown("""
 
     button[data-baseweb="tab"]:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15); }
 
+    /* Performans Matrisi Kart Tasarımı */
     .matrix-card { background-color: #131722; border: 1px solid #1e222d; border-radius: 12px; padding: 16px; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .matrix-title { color: #00b0ff; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
     .matrix-target { color: #8a8d93; font-size: 12px; margin-top: 3px; }
@@ -69,17 +75,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-sheets_dict = get_all_sheets(EXCEL_FILE)
+sheets_dict = load_all_sheets(EXCEL_FILE)
 
 if sheets_dict is not None:
     sheet_names = list(sheets_dict.keys())
     df_raw = sheets_dict[sheet_names[0]].copy()
 
+    # Hariç Tutulacak Personel
     haric_personel = ['CRM Admin', 'Luron AI API', 'Aleyna Daşdemir', 'Zeynep Güzel']
     
     if 'Görevi Alan' in df_raw.columns:
-        df_raw = df_raw[~df_raw['Görevi Alan'].astype(str).isin(haric_personel)].copy()
-        temsilci_listesi = ["Tümü"] + sorted([str(x) for x in df_raw['Görevi Alan'].dropna().unique()])
+        df_raw = df_raw[~df_raw['Görevi Alan'].astype(str).str.strip().isin(haric_personel)].copy()
+        temsilci_listesi = ["Tümü"] + sorted([str(x).strip() for x in df_raw['Görevi Alan'].dropna().unique()])
     else:
         temsilci_listesi = ["Tümü"]
 
@@ -101,34 +108,36 @@ if sheets_dict is not None:
     else:
         st.sidebar.caption("🌐 Tüm şirket verileri gösteriliyor.")
 
-    # Filtreli Ana Data
+    # Filtreli Ana Veri
     if secilen_temsilci != "Tümü" and 'Görevi Alan' in df_raw.columns:
-        df = df_raw[df_raw['Görevi Alan'] == secilen_temsilci].copy()
+        df = df_raw[df_raw['Görevi Alan'].astype(str).str.strip() == secilen_temsilci].copy()
     else:
         df = df_raw.copy()
 
-    # Yardımcı Filtreleme Fonksiyonu
-    def get_sheet_data(sheet_keyword):
+    # Esnek Sekme Verisi Çekici
+    def get_sheet_df(keyword):
         target_s = None
         for s in sheet_names:
-            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-            if sheet_keyword in name_norm:
+            norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+            if keyword in norm:
                 target_s = s
                 break
         if target_s is not None:
-            res_df = sheets_dict[target_s].copy()
-            if len(res_df.columns) > 0:
-                res_df = res_df[~res_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+            sdf = sheets_dict[target_s].copy()
+            if len(sdf.columns) > 0:
+                first_col = sdf.columns[0]
+                sdf = sdf[~sdf[first_col].astype(str).str.strip().isin(haric_personel)].copy()
                 if secilen_temsilci != "Tümü":
-                    filtered = res_df[res_df.iloc[:, 0].astype(str) == secilen_temsilci]
+                    filtered = sdf[sdf[first_col].astype(str).str.strip() == secilen_temsilci]
                     if not filtered.empty:
-                        return res_df.columns, filtered
-            return res_df.columns, res_df
-        return None, None
+                        return filtered
+            return sdf
+        return None
 
     # --- ANA SAYFA ---
     st.title("📊 Performans ve Özet Tablolar Paneli")
 
+    # Genel KPI Kartları
     toplam_gorev = len(df)
     tamamlanan = len(df[df['Görev Durumu'] == 'Tamamlandı']) if 'Görev Durumu' in df.columns else 0
     tamamlanmayan = toplam_gorev - tamamlanan
@@ -162,15 +171,8 @@ if sheets_dict is not None:
     m_kriter_h, m_kriter_g = "%20.0", "%34.4"
     m_gelme_h, m_gelme_g = "%40.0", "%41.3"
 
-    genel_sheet = None
-    for s in sheet_names:
-        name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-        if "genel" in name_norm and "hedef" in name_norm:
-            genel_sheet = s
-            break
-    
-    if genel_sheet is not None:
-        gh_df = sheets_dict[genel_sheet].copy()
+    gh_df = get_sheet_df("genel")
+    if gh_df is not None:
         for idx, r in gh_df.iterrows():
             row_label = str(r.iloc[0]).strip().lower()
             th = r.iloc[1] if pd.notnull(r.iloc[1]) else 0
@@ -203,7 +205,7 @@ if sheets_dict is not None:
         "🚶‍♂️ Gelme Oranı Hedef", "🚫 Kriter Dışı Hedef", "📈 Data Analiz"
     ])
 
-    # 1. TEMSİLCİ ÖZET
+    # 1. TABLO: TEMSİLCİ PERFORMANSI
     with tab1:
         st.subheader("Temsilci Bazlı Performans Özet Tablosu")
         if 'Görevi Alan' in df.columns and 'Görev Durumu' in df.columns:
@@ -255,10 +257,10 @@ if sheets_dict is not None:
             fig_temsilci.update_traces(textposition='outside')
             st.plotly_chart(fig_temsilci, use_container_width=True)
 
-    # 2. TEMSİLCİ YORUMU
+    # 2. TABLO: TEMSİLCİ YORUMU
     with tab2:
         st.subheader("Temsilci Yorumları ve Performans Analizi")
-        _, ty_df = get_sheet_data("yorum")
+        ty_df = get_sheet_df("yorum")
         if ty_df is not None and not ty_df.empty:
             for idx, row in ty_df.iterrows():
                 temsilci_adi = str(row.iloc[0])
@@ -270,7 +272,7 @@ if sheets_dict is not None:
                     for satir in satirlar:
                         st.markdown(satir)
 
-    # 3. AKSİYON ÖZET
+    # 3. TABLO: AKSİYON SONUÇLARI
     with tab3:
         st.subheader("Son Aksiyon ve Son Arama Dağılım Tablosu")
         col_t1, col_t2 = st.columns(2)
@@ -289,7 +291,7 @@ if sheets_dict is not None:
                 arama_ozet['Oran (%)'] = ((arama_ozet['Adet'] / arama_ozet['Adet'].sum()) * 100).map(lambda x: f"%{x:.1f}")
                 st.table(arama_ozet)
 
-    # 4. İL & MARKA ANALİZİ
+    # 4. TABLO: İL & MARKA KIRILIMI
     with tab4:
         st.subheader("Bölgesel ve Marka Bazlı Görev Tablosu")
         if 'İl' in df.columns and 'Marka' in df.columns:
@@ -298,61 +300,127 @@ if sheets_dict is not None:
     # 5. REZERVASYON HEDEF
     with tab5:
         st.subheader("🎯 Rezervasyon Hedef Tablosu ve Performans Grafiği")
-        _, rez_df = get_sheet_data("rezervasyon")
+        rez_df = get_sheet_df("rezervasyon")
         if rez_df is not None and not rez_df.empty:
+            for c in rez_df.columns:
+                if "oran" not in str(c).lower() and "%" not in str(c) and c != rez_df.columns[0]:
+                    rez_df[c] = pd.to_numeric(rez_df[c], errors='coerce').fillna(0).round().astype(int)
+
             oran_col = [c for c in rez_df.columns if "oran" in str(c).lower() or "%" in str(c)]
             if oran_col:
                 target_oran_col = oran_col[0]
                 raw_values = rez_df[target_oran_col].apply(lambda x: x * 100 if isinstance(x, (int, float)) and x <= 2 else (x if isinstance(x, (int, float)) else 0))
+                
                 display_df = rez_df.copy()
                 display_df[target_oran_col] = raw_values.apply(lambda x: f"%{x:.1f}")
-                styled_df = display_df.style.apply(lambda col: ['color: #00E676; font-weight: bold;' if val>=100 else ('color: #FFEA00; font-weight: bold;' if val>=80 else 'color: #FF1744; font-weight: bold;') for val in raw_values] if col.name == target_oran_col else ['text-align: center;'] * len(col), axis=0).hide(axis="index")
+
+                def color_cell(val):
+                    if val >= 100: return 'color: #00E676; font-weight: bold; text-align: center;'
+                    elif val >= 80: return 'color: #FFEA00; font-weight: bold; text-align: center;'
+                    else: return 'color: #FF1744; font-weight: bold; text-align: center;'
+
+                styled_df = display_df.style.apply(
+                    lambda col: [color_cell(val) for val in raw_values] if col.name == target_oran_col else ['text-align: center;'] * len(col),
+                    axis=0
+                ).hide(axis="index")
+
                 st.dataframe(styled_df, use_container_width=True, height=(len(display_df) + 1) * 35 + 38)
+
+                st.markdown("### 📊 Temsilci Bazlı Gerçekleşen Rezervasyon Performansı")
+                chart_df = rez_df[rez_df.iloc[:, 0].astype(str).str.lower() != 'toplam'].copy()
+                chart_df['Oran_Val'] = raw_values
+                chart_df['Performans Durumu'] = chart_df['Oran_Val'].apply(lambda v: 'Yüksek (>=%100)' if v>=100 else ('Orta (%80-%99)' if v>=80 else 'Düşük (<%80)'))
+
+                y_col = chart_df.columns[3] if len(chart_df.columns) > 3 else chart_df.columns[1]
+                fig = px.bar(
+                    chart_df, x=chart_df.columns[0], y=y_col, color='Performans Durumu',
+                    color_discrete_map={'Yüksek (>=%100)': '#00E676', 'Orta (%80-%99)': '#FFEA00', 'Düşük (<%80)': '#FF1744'},
+                    text=y_col, title="Temsilcilere Göre Gerçekleşen Rezervasyon"
+                )
+                fig.update_layout(template="plotly_dark", xaxis_title="Temsilci", yaxis_title="Gerçekleşen Adet")
+                fig.update_traces(textposition='outside')
+                st.plotly_chart(fig, use_container_width=True)
 
     # 6. SATIŞ HEDEF
     with tab6:
         st.subheader("💰 Satış Hedef Tablosu ve Performans Grafiği")
-        _, satis_df = get_sheet_data("satis")
+        satis_df = get_sheet_df("satis")
         if satis_df is not None and not satis_df.empty:
+            for c in satis_df.columns:
+                if "oran" not in str(c).lower() and "%" not in str(c) and c != satis_df.columns[0]:
+                    satis_df[c] = pd.to_numeric(satis_df[c], errors='coerce').fillna(0).round().astype(int)
+
             satis_oran_col = [c for c in satis_df.columns if "oran" in str(c).lower() or "%" in str(c)]
             if satis_oran_col:
                 target_satis_oran_col = satis_oran_col[0]
                 raw_satis_values = satis_df[target_satis_oran_col].apply(lambda x: x * 100 if isinstance(x, (int, float)) and x <= 2 else (x if isinstance(x, (int, float)) else 0))
+
                 display_satis_df = satis_df.copy()
                 display_satis_df[target_satis_oran_col] = raw_satis_values.apply(lambda x: f"%{x:.1f}")
-                styled_satis_df = display_satis_df.style.apply(lambda col: ['color: #00E676; font-weight: bold;' if val>=50 else ('color: #FFEA00; font-weight: bold;' if val>=35 else 'color: #FF1744; font-weight: bold;') for val in raw_satis_values] if col.name == target_satis_oran_col else ['text-align: center;'] * len(col), axis=0).hide(axis="index")
+
+                def color_satis_cell(val):
+                    if val >= 50: return 'color: #00E676; font-weight: bold; text-align: center;'
+                    elif val >= 35: return 'color: #FFEA00; font-weight: bold; text-align: center;'
+                    else: return 'color: #FF1744; font-weight: bold; text-align: center;'
+
+                styled_satis_df = display_satis_df.style.apply(
+                    lambda col: [color_satis_cell(val) for val in raw_satis_values] if col.name == target_satis_oran_col else ['text-align: center;'] * len(col),
+                    axis=0
+                ).hide(axis="index")
+
                 st.dataframe(styled_satis_df, use_container_width=True, height=(len(display_satis_df) + 1) * 35 + 38)
+
+                st.markdown("### 📊 Temsilci Bazlı Gerçekleşen Satış Performansı")
+                chart_satis_df = satis_df[satis_df.iloc[:, 0].astype(str).str.lower() != 'toplam'].copy()
+                chart_satis_df['Oran_Val'] = raw_satis_values
+                chart_satis_df['Satış Durumu'] = chart_satis_df['Oran_Val'].apply(lambda v: 'Yüksek (>=%50)' if v>=50 else ('Orta (%35-%49)' if v>=35 else 'Düşük (<%35)'))
+
+                y_satis_col = chart_satis_df.columns[2] if len(chart_satis_df.columns) > 2 else chart_satis_df.columns[1]
+                fig_satis = px.bar(
+                    chart_satis_df, x=chart_satis_df.columns[0], y=y_satis_col, color='Satış Durumu',
+                    color_discrete_map={'Yüksek (>=%50)': '#00E676', 'Orta (%35-%49)': '#FFEA00', 'Düşük (<%35)': '#FF1744'},
+                    text=y_satis_col, title="Temsilcilere Göre Gerçekleşen Satış Adetleri"
+                )
+                fig_satis.update_layout(template="plotly_dark", xaxis_title="Temsilci", yaxis_title="Gerçekleşen Satış Adedi")
+                fig_satis.update_traces(textposition='outside')
+                st.plotly_chart(fig_satis, use_container_width=True)
 
     # 7. GELME ORANI HEDEF
     with tab7:
         st.subheader("🚶‍♂️ Gelme Oranı Hedef Tablosu ve Performans Grafiği")
-        _, gelme_df = get_sheet_data("gelme")
+        gelme_df = get_sheet_df("gelme")
         if gelme_df is not None and not gelme_df.empty:
             if len(gelme_df.columns) > 2:
                 gerceklesen_col = gelme_df.columns[2]
                 raw_gerceklesen = gelme_df[gerceklesen_col].apply(lambda x: x * 100 if isinstance(x, (int, float)) and x <= 2 else (x if isinstance(x, (int, float)) else 0))
                 display_gelme = gelme_df.copy()
                 display_gelme[gerceklesen_col] = raw_gerceklesen.apply(lambda x: f"%{x:.1f}")
-                styled_gelme = display_gelme.style.apply(lambda col: ['color: #00E676; font-weight: bold;' if val>=40 else 'color: #FF1744; font-weight: bold;' for val in raw_gerceklesen] if col.name == gerceklesen_col else ['text-align: center;'] * len(col), axis=0).hide(axis="index")
+                styled_gelme = display_gelme.style.apply(
+                    lambda col: ['color: #00E676; font-weight: bold;' if val>=40 else 'color: #FF1744; font-weight: bold;' for val in raw_gerceklesen] if col.name == gerceklesen_col else ['text-align: center;'] * len(col),
+                    axis=0
+                ).hide(axis="index")
                 st.dataframe(styled_gelme, use_container_width=True, height=(len(display_gelme) + 1) * 35 + 38)
 
     # 8. KRİTER DIŞI HEDEF
     with tab8:
         st.subheader("🚫 Kriter Dışı Hedef Tablosu ve Performans Grafiği")
-        _, kriter_df = get_sheet_data("kriter")
+        kriter_df = get_sheet_df("kriter")
         if kriter_df is not None and not kriter_df.empty:
             if len(kriter_df.columns) > 2:
                 k_gerceklesen_col = kriter_df.columns[2]
                 raw_kriter = kriter_df[k_gerceklesen_col].apply(lambda x: x * 100 if isinstance(x, (int, float)) and x <= 2 else (x if isinstance(x, (int, float)) else 0))
                 display_kriter = kriter_df.copy()
                 display_kriter[k_gerceklesen_col] = raw_kriter.apply(lambda x: f"%{x:.1f}")
-                styled_kriter = display_kriter.style.apply(lambda col: ['color: #FF1744; font-weight: bold;' if val>20 else 'color: #00E676; font-weight: bold;' for val in raw_kriter] if col.name == k_gerceklesen_col else ['text-align: center;'] * len(col), axis=0).hide(axis="index")
+                styled_kriter = display_kriter.style.apply(
+                    lambda col: ['color: #FF1744; font-weight: bold;' if val>20 else 'color: #00E676; font-weight: bold;' for val in raw_kriter] if col.name == k_gerceklesen_col else ['text-align: center;'] * len(col),
+                    axis=0
+                ).hide(axis="index")
                 st.dataframe(styled_kriter, use_container_width=True, height=(len(display_kriter) + 1) * 35 + 38)
 
     # 9. DATA ANALİZ
     with tab9:
         st.subheader("📈 Data Analiz Tablosu ve Arama Sonuçları Grafiği")
-        _, da_df = get_sheet_data("data")
+        da_df = get_sheet_df("data")
         if da_df is not None and not da_df.empty:
             st.dataframe(da_df.style.hide(axis="index"), use_container_width=True, height=(len(da_df) + 1) * 35 + 38)
 
