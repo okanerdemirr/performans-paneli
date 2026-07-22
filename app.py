@@ -13,14 +13,15 @@ st.set_page_config(
 
 EXCEL_FILE = "veri.xlsx"
 
-# Önbellek Temizleme Fonksiyonu
+# Önbellek Temizleme Fonksiyonu - Excel Sayfalarını Okuma
 @st.cache_data(ttl=300)
-def load_data(file_path):
+def get_all_sheets(file_path):
     if os.path.exists(file_path):
-        return pd.ExcelFile(file_path)
+        excel = pd.ExcelFile(file_path)
+        return {sheet: excel.parse(sheet) for sheet in excel.sheet_names}
     return None
 
-# Custom CSS - Koyu Tasarım + Fuşya Çerçeveler + Sol Menü Tasarımı
+# Custom CSS
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
@@ -73,11 +74,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-excel_file = load_data(EXCEL_FILE)
+sheets_dict = get_all_sheets(EXCEL_FILE)
 
-if excel_file is not None:
-    sheet_names = excel_file.sheet_names
-    df_raw = pd.read_excel(excel_file, sheet_name=0)
+if sheets_dict is not None:
+    sheet_names = list(sheets_dict.keys())
+    df_raw = sheets_dict[sheet_names[0]].copy()
 
     # HARİÇ TUTULACAK PERSONEL
     haric_personel = ['CRM Admin', 'Luron AI API', 'Aleyna Daşdemir', 'Zeynep Güzel']
@@ -158,7 +159,7 @@ if excel_file is not None:
             break
     
     if genel_sheet is not None:
-        gh_df = pd.read_excel(excel_file, sheet_name=genel_sheet)
+        gh_df = sheets_dict[genel_sheet].copy()
         for idx, r in gh_df.iterrows():
             row_label = str(r.iloc[0]).strip().lower()
             th = r.iloc[1] if pd.notnull(r.iloc[1]) else 0
@@ -254,7 +255,7 @@ if excel_file is not None:
                 break
 
         if ty_sheet is not None:
-            ty_df = pd.read_excel(excel_file, sheet_name=ty_sheet)
+            ty_df = sheets_dict[ty_sheet].copy()
             ty_df = ty_df[~ty_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
             if secilen_temsilci != "Tümü":
                 ty_df = ty_df[ty_df.iloc[:, 0].astype(str) == secilen_temsilci]
@@ -303,7 +304,7 @@ if excel_file is not None:
                 target_s = s
                 break
         if target_s is not None:
-            s_df = pd.read_excel(excel_file, sheet_name=target_s)
+            s_df = sheets_dict[target_s].copy()
             s_df = s_df[~s_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
             if secilen_temsilci != "Tümü":
                 s_df = s_df[s_df.iloc[:, 0].astype(str) == secilen_temsilci]
