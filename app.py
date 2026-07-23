@@ -55,37 +55,56 @@ st.markdown("""
         overflow: hidden !important;
     }
 
-    /* Sekme Başlıklarını 2 Satıra Yayma & Renkli Çerçeveler */
-    button[data-baseweb="tab-tab-list"] {
-        flex-wrap: wrap !important;
+    /* =========================================================
+       🎯 SEKME BAŞLIKLARI (HER ÇERÇEVE FARKLI RENK & 2 SATIR)
+       ========================================================= */
+    div[data-testid="stTabs"] > div[data-baseweb="tab-list"] {
         gap: 10px !important;
-        justify-content: flex-start !important;
+        margin-bottom: 15px !important;
     }
-    button[data-baseweb="tab"] {
-        white-space: normal !important;
-        height: auto !important;
-        padding: 10px 16px !important;
-        border-radius: 8px !important;
+
+    div[data-testid="stTabs"] button[role="tab"] {
+        white-space: pre-wrap !important; /* Alt satır (\n) karakterini çalıştırır */
+        text-align: center !important;
+        justify-content: center !important;
+        align-items: center !important;
+        min-height: 60px !important;
+        padding: 8px 14px !important;
+        border-radius: 10px !important;
         border-style: solid !important;
-        border-width: 1.5px !important;
-        font-weight: 600 !important;
+        border-width: 2px !important;
+        font-weight: 700 !important;
         transition: all 0.3s ease !important;
     }
 
-    /* Her Sekme İçin Farklı Çerçeve ve Arka Plan Renkleri */
-    button[data-baseweb="tab"]:nth-child(1) { border-color: #FF4081 !important; background-color: rgba(255, 64, 129, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(2) { border-color: #00B0FF !important; background-color: rgba(0, 176, 255, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(3) { border-color: #00E676 !important; background-color: rgba(0, 230, 118, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(4) { border-color: #FF9100 !important; background-color: rgba(255, 145, 0, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(5) { border-color: #FF1744 !important; background-color: rgba(255, 23, 68, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(6) { border-color: #FFEA00 !important; background-color: rgba(255, 234, 0, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(7) { border-color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(8) { border-color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.08) !important; }
-    button[data-baseweb="tab"]:nth-child(9) { border-color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.08) !important; }
+    /* Sekme İçi Metinleri Ortala */
+    div[data-testid="stTabs"] button[role="tab"] p {
+        white-space: pre-wrap !important;
+        text-align: center !important;
+        line-height: 1.25 !important;
+        font-size: 13px !important;
+        margin: 0 !important;
+    }
 
-    button[data-baseweb="tab"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+    /* Her Sekme İçin Özel Neon Renkli Çerçeveler */
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(1) { border-color: #FF4081 !important; background-color: rgba(255, 64, 129, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(2) { border-color: #00B0FF !important; background-color: rgba(0, 176, 255, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(3) { border-color: #00E676 !important; background-color: rgba(0, 230, 118, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(4) { border-color: #FF9100 !important; background-color: rgba(255, 145, 0, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(5) { border-color: #FF1744 !important; background-color: rgba(255, 23, 68, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(6) { border-color: #FFEA00 !important; background-color: rgba(255, 234, 0, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(7) { border-color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(8) { border-color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.1) !important; }
+    div[data-testid="stTabs"] button[role="tab"]:nth-child(9) { border-color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.1) !important; }
+
+    div[data-testid="stTabs"] button[role="tab"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15) !important;
+    }
+
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+        filter: brightness(1.3);
+        box-shadow: 0 0 10px currentColor !important;
     }
 
     /* Performans Matrisi Kart Tasarımı */
@@ -361,17 +380,17 @@ if sheets_dict is not None and len(sheet_names) > 0:
 
     st.markdown("---")
 
-    # SEKMELER (9 Sekme)
+    # SEKMELER (9 Sekme) - 2 Satıra ayrılmış başlıklar
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
-        "👥 Temsilci Özet Tablosu", 
-        "💬 Temsilci Yorumu", 
-        "📞 Aksiyon Özet Tablosu", 
-        "📍 İl & Marka Analizi",
-        "🎯 Rezervasyon Hedef",
-        "💰 Satış Hedef",
-        "🚶‍♂️ Gelme Oranı Hedef",
-        "🚫 Kriter Dışı Hedef",
-        "📈 Data Analiz"
+        "👥 Temsilci\nÖzet Tablosu", 
+        "💬 Temsilci\nYorumu", 
+        "📞 Aksiyon\nÖzet Tablosu", 
+        "📍 İl &\nMarka Analizi",
+        "🎯 Rezervasyon\nHedef",
+        "💰 Satış\nHedef",
+        "🚶‍♂️ Gelme Oranı\nHedef",
+        "🚫 Kriter Dışı\nHedef",
+        "📈 Data\nAnaliz"
     ])
 
     # 1. TABLO & GRAFİK: TEMSİLCİ PERFORMANSI
