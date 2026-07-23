@@ -17,19 +17,36 @@ def load_data_from_excel(file_path):
         return sheets, excel.sheet_names
     return None, []
 
-# Tüm Tasarım ve CSS Ayarları
+# CSS Tasarımları
 st.markdown("""
     <style>
-    /* --- TABLO HÜCRE VE BAŞLIK HİZALAMALARI --- */
-    th, td { text-align: center !important; }
-    div[data-testid="stTable"] table, div[data-testid="stDataFrame"] table { width: 100%; text-align: center !important; }
-    div[data-testid="stTable"] th, div[data-testid="stDataFrame"] th { text-align: center !important; }
-    div[data-testid="stTable"] td, div[data-testid="stDataFrame"] td { text-align: center !important; }
-    [data-testid="stDataFrame"] [role="gridcell"] { justify-content: center !important; text-align: center !important; }
-    [data-testid="stDataFrame"] [role="columnheader"] { justify-content: center !important; text-align: center !important; }
-    div[data-testid="stDataFrame"] > div { max-height: none !important; }
+    /* Tablo Hücre ve Başlık Hizalamaları */
+    th, td {
+        text-align: center !important;
+    }
+    div[data-testid="stTable"] table, div[data-testid="stDataFrame"] table {
+        width: 100%;
+        text-align: center !important;
+    }
+    div[data-testid="stTable"] th, div[data-testid="stDataFrame"] th {
+        text-align: center !important;
+    }
+    div[data-testid="stTable"] td, div[data-testid="stDataFrame"] td {
+        text-align: center !important;
+    }
+    [data-testid="stDataFrame"] [role="gridcell"] {
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    [data-testid="stDataFrame"] [role="columnheader"] {
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    div[data-testid="stDataFrame"] > div {
+        max-height: none !important;
+    }
 
-    /* --- TÜM TABLOLAR İÇİN FUŞYA ÇERÇEVE KURALI --- */
+    /* TÜM TABLOLAR İÇİN FUŞYA ÇERÇEVE KURALI */
     div[data-testid="stDataFrame"], div[data-testid="stTable"] {
         border: 2px solid #FF007F !important;
         border-radius: 12px !important;
@@ -38,78 +55,56 @@ st.markdown("""
         overflow: hidden !important;
     }
 
-    /* --- SEKME BAŞLIKLARI (RENKLİ ÇERÇEVELER & 2 SATIR METİN) --- */
+    /* =========================================================
+       🎯 SEKME BAŞLIKLARI (RENKLİ ÇERÇEVELER & 2 SATIR YAZI)
+       ========================================================= */
     div[data-testid="stTabs"] > div[data-baseweb="tab-list"] {
-        gap: 12px !important;
-        margin-bottom: 15px !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
     }
-    
+
     div[data-testid="stTabs"] button[role="tab"] {
-        white-space: normal !important; /* Metni 2 satıra kırmak için */
+        white-space: normal !important;
         word-break: break-word !important;
-        width: 140px !important; /* Genişliği kısıtlayıp alt satıra geçmeye zorlar */
-        min-height: 75px !important; /* 2 satır için yeterli alan */
-        padding: 8px 5px !important;
-        border-radius: 12px !important;
-        border: 2px solid transparent !important;
-        background-color: #131722 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        max-width: 130px !important;
+        min-height: 65px !important;
+        padding: 6px 10px !important;
+        border-radius: 10px !important;
+        border-style: solid !important;
+        border-width: 2px !important;
+        font-weight: 700 !important;
         text-align: center !important;
+        justify-content: center !important;
+        align-items: center !important;
         transition: all 0.3s ease !important;
     }
-    
-    /* Sekme İçerisindeki Metinleri Ortala */
+
+    /* Sekme İçi Metinleri Ortala ve 2 Satıra Sığdır */
     div[data-testid="stTabs"] button[role="tab"] p {
         white-space: normal !important;
         text-align: center !important;
-        line-height: 1.3 !important;
+        line-height: 1.25 !important;
         font-size: 13px !important;
-        font-weight: 700 !important;
         margin: 0 !important;
-        padding: 0 !important;
     }
 
-    /* Sekme Çerçeve ve Metin Renkleri */
+    /* Her Sekmeye Özel Çerçeve ve Arka Plan Renkleri */
     div[data-testid="stTabs"] button[role="tab"]:nth-child(1) { border-color: #FF4081 !important; background-color: rgba(255, 64, 129, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(1) p { color: #FF4081 !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(2) { border-color: #00B0FF !important; background-color: rgba(0, 176, 255, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(2) p { color: #00B0FF !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(3) { border-color: #00E676 !important; background-color: rgba(0, 230, 118, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(3) p { color: #00E676 !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(4) { border-color: #FF9100 !important; background-color: rgba(255, 145, 0, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(4) p { color: #FF9100 !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(5) { border-color: #FF1744 !important; background-color: rgba(255, 23, 68, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(5) p { color: #FF1744 !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(6) { border-color: #FFEA00 !important; background-color: rgba(255, 234, 0, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(6) p { color: #FFEA00 !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(7) { border-color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(7) p { color: #00E5FF !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(8) { border-color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(8) p { color: #FF3D00 !important; }
-    
     div[data-testid="stTabs"] button[role="tab"]:nth-child(9) { border-color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.12) !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-child(9) p { color: #D500F9 !important; }
 
-    /* Hover ve Active (Seçili) Efektleri */
     div[data-testid="stTabs"] button[role="tab"]:hover {
-        transform: translateY(-4px) scale(1.03);
-        box-shadow: 0 6px 15px rgba(255, 255, 255, 0.15) !important;
-    }
-    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        box-shadow: 0 0 12px currentColor !important;
-        filter: brightness(1.2);
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15) !important;
     }
 
-    /* --- PERFORMANS MATRİSİ KART TASARIMI (ORTADAKİ 5 KART) --- */
+    /* Performans Matrisi Kart Tasarımı */
     .matrix-card {
         background-color: #131722;
         border: 1px solid #1e222d;
@@ -122,7 +117,7 @@ st.markdown("""
     .matrix-value { color: #ffffff; font-size: 26px; font-weight: 800; margin: 10px 0; }
     .matrix-badge { display: inline-block; background-color: #0e3a2f; color: #00e676; padding: 3px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; }
 
-    /* --- RENKLİ ÇERÇEVELİ KPI KUTULARI TASARIMI (ÜSTTEKİ 3 KUTU) --- */
+    /* RENKLİ ÇERÇEVELİ KPI KUTULARI TASARIMI */
     .kpi-card {
         background-color: #131722;
         border-radius: 12px;
@@ -143,7 +138,6 @@ st.markdown("""
         color: #ffffff;
     }
 
-    /* Farklı Çerçeve Renkleri */
     .kpi-blue { border: 2px solid #00B0FF !important; box-shadow: 0 0 12px rgba(0, 176, 255, 0.25) !important; }
     .kpi-green { border: 2px solid #00E676 !important; box-shadow: 0 0 12px rgba(0, 230, 118, 0.25) !important; }
     .kpi-cyan { border: 2px solid #00E5FF !important; box-shadow: 0 0 12px rgba(0, 229, 255, 0.25) !important; }
@@ -382,7 +376,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
 
     st.markdown("---")
 
-    # SEKMELER (9 Sekme)
+    # SEKMELER (9 Sekme) - 2 Satıra Kırılması İçin Başlıklar Düzgün Tanımlandı
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
         "👥 Temsilci Özet Tablosu", 
         "💬 Temsilci Yorumu", 
