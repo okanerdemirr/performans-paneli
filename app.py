@@ -17,7 +17,7 @@ def load_data_from_excel(file_path):
         return sheets, excel.sheet_names
     return None, []
 
-# Tüm Tabloları Fuşya Çerçeve İçine Alan + Hücreleri Ortalayan CSS
+# Tüm Tabloları Fuşya Çerçeve İçine Alan + Hücreleri Ortalayan + Özel Kutu Tasarımları CSS
 st.markdown("""
     <style>
     /* Tablo Hücre ve Başlık Hizalamaları */
@@ -100,6 +100,32 @@ st.markdown("""
     .matrix-target { color: #8a8d93; font-size: 11px; margin-top: 2px; }
     .matrix-value { color: #ffffff; font-size: 26px; font-weight: 800; margin: 10px 0; }
     .matrix-badge { display: inline-block; background-color: #0e3a2f; color: #00e676; padding: 3px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; }
+
+    /* RENKLİ ÇERÇEVELİ KPI KUTULARI TASARIMI */
+    .kpi-card {
+        background-color: #131722;
+        border-radius: 12px;
+        padding: 16px 20px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        margin-bottom: 10px;
+    }
+    .kpi-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #a0a5b5;
+        margin-bottom: 8px;
+    }
+    .kpi-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    /* Farklı Çerçeve Renkleri */
+    .kpi-blue { border: 2px solid #00B0FF !important; box-shadow: 0 0 12px rgba(0, 176, 255, 0.25) !important; }
+    .kpi-green { border: 2px solid #00E676 !important; box-shadow: 0 0 12px rgba(0, 230, 118, 0.25) !important; }
+    .kpi-cyan { border: 2px solid #00E5FF !important; box-shadow: 0 0 12px rgba(0, 229, 255, 0.25) !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -182,14 +208,34 @@ if sheets_dict is not None and len(sheet_names) > 0:
     tamamlanmayan = toplam_gorev - tamamlanan
     tamamlanma_orani = (tamamlanan / toplam_gorev * 100) if toplam_gorev > 0 else 0
 
-    # SOLDA METRİKLER - SAĞDA PASTA GRAFİĞİ
+    # SOLDA METRİKLER (FARKLI RENKTE ÇERÇEVELER) - SAĞDA PASTA GRAFİĞİ
     kpi_col, pie_col = st.columns([1.2, 1])
 
     with kpi_col:
         m1, m2, m3 = st.columns(3)
-        m1.metric("Toplam Görev Sayısı", f"{toplam_gorev:,}")
-        m2.metric("Tamamlanan Görev", f"{tamamlanan:,}")
-        m3.metric("Genel Tamamlanma Oranı", f"%{tamamlanma_orani:.1f}")
+        with m1:
+            st.markdown(f"""
+                <div class="kpi-card kpi-blue">
+                    <div class="kpi-title">Toplam Görev Sayısı</div>
+                    <div class="kpi-value">{toplam_gorev:,}</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        with m2:
+            st.markdown(f"""
+                <div class="kpi-card kpi-green">
+                    <div class="kpi-title">Tamamlanan Görev</div>
+                    <div class="kpi-value">{tamamlanan:,}</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        with m3:
+            st.markdown(f"""
+                <div class="kpi-card kpi-cyan">
+                    <div class="kpi-title">Genel Tamamlanma Oranı</div>
+                    <div class="kpi-value">%{tamamlanma_orani:.1f}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
     with pie_col:
         pie_data = pd.DataFrame({
