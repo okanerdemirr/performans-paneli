@@ -8,7 +8,7 @@ st.set_page_config(page_title="Verimlilik ve Performans Paneli", layout="wide")
 
 EXCEL_FILE = "veri.xlsx"
 
-# Güvenli Önbellek Fonksiyonu (Veriyi GitHub'daki veri.xlsx'ten çeker)
+# Güvenli Önbellek Fonksiyonu
 @st.cache_data(ttl=300)
 def load_data_from_excel(file_path):
     if os.path.exists(file_path):
@@ -21,30 +21,13 @@ def load_data_from_excel(file_path):
 st.markdown("""
     <style>
     /* Tablo Hücre ve Başlık Hizalamaları */
-    th, td {
-        text-align: center !important;
-    }
-    div[data-testid="stTable"] table, div[data-testid="stDataFrame"] table {
-        width: 100%;
-        text-align: center !important;
-    }
-    div[data-testid="stTable"] th, div[data-testid="stDataFrame"] th {
-        text-align: center !important;
-    }
-    div[data-testid="stTable"] td, div[data-testid="stDataFrame"] td {
-        text-align: center !important;
-    }
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        justify-content: center !important;
-        text-align: center !important;
-    }
-    [data-testid="stDataFrame"] [role="columnheader"] {
-        justify-content: center !important;
-        text-align: center !important;
-    }
-    div[data-testid="stDataFrame"] > div {
-        max-height: none !important;
-    }
+    th, td { text-align: center !important; }
+    div[data-testid="stTable"] table, div[data-testid="stDataFrame"] table { width: 100%; text-align: center !important; }
+    div[data-testid="stTable"] th, div[data-testid="stDataFrame"] th { text-align: center !important; }
+    div[data-testid="stTable"] td, div[data-testid="stDataFrame"] td { text-align: center !important; }
+    [data-testid="stDataFrame"] [role="gridcell"] { justify-content: center !important; text-align: center !important; }
+    [data-testid="stDataFrame"] [role="columnheader"] { justify-content: center !important; text-align: center !important; }
+    div[data-testid="stDataFrame"] > div { max-height: none !important; }
 
     /* TÜM TABLOLAR İÇİN FUŞYA ÇERÇEVE KURALI */
     div[data-testid="stDataFrame"], div[data-testid="stTable"] {
@@ -56,69 +39,44 @@ st.markdown("""
     }
 
     /* =========================================================
-       🎯 SEKME BAŞLIKLARI KESİN BARSITMA (OVERRIDE)
+       🎨 ÖZEL ÇERÇEVELİ VE İKİ SATIRLI SEKME BUTONLARI (OVR)
        ========================================================= */
-    /* Varsayılan kırmızı sekme çizgisini gizle */
-    div[data-testid="stTabs"] [data-baseweb="tab-highlight-point"] {
-        display: none !important;
-    }
-    div[data-testid="stTabs"] [data-baseweb="tab-border"] {
-        display: none !important;
-    }
-
-    /* Sekme Listesi Düzeni */
-    div[data-testid="stTabs"] div[role="tablist"] {
-        gap: 10px !important;
-        border-bottom: none !important;
-        flex-wrap: wrap !important;
-    }
-
-    /* Buton Çerçeveleri ve Boyutu */
-    div[data-testid="stTabs"] button[role="tab"], 
-    button[id^="tabs-b-tab"] {
+    div[data-testid="stHorizontalBlock"] button[key^="tab_btn_"] {
+        width: 100% !important;
+        min-height: 65px !important;
+        border-radius: 10px !important;
         border-style: solid !important;
         border-width: 2px !important;
-        border-radius: 10px !important;
-        padding: 8px 12px !important;
-        min-height: 58px !important;
+        padding: 4px 8px !important;
+        font-weight: 700 !important;
+        transition: all 0.25s ease-in-out !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        transition: all 0.25s ease-in-out !important;
     }
 
-    /* Sekme Metinlerini 2 Satır Yap ve Ortala */
-    div[data-testid="stTabs"] button[role="tab"] p,
-    button[id^="tabs-b-tab"] p {
+    div[data-testid="stHorizontalBlock"] button[key^="tab_btn_"] p {
         white-space: pre-wrap !important;
         text-align: center !important;
-        font-weight: 700 !important;
-        font-size: 13px !important;
         line-height: 1.25 !important;
+        font-size: 13px !important;
         margin: 0 !important;
     }
 
-    /* HER SEKME İÇİN FARKLI RENKTE ÇERÇEVELER */
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(1) { border-color: #FF4081 !important; background-color: rgba(255, 64, 129, 0.12) !important; color: #FF4081 !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(2) { border-color: #00B0FF !important; background-color: rgba(0, 176, 255, 0.12) !important; color: #00B0FF !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(3) { border-color: #00E676 !important; background-color: rgba(0, 230, 118, 0.12) !important; color: #00E676 !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(4) { border-color: #FF9100 !important; background-color: rgba(255, 145, 0, 0.12) !important; color: #FF9100 !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(5) { border-color: #FF1744 !important; background-color: rgba(255, 23, 68, 0.12) !important; color: #FF1744 !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(6) { border-color: #FFEA00 !important; background-color: rgba(255, 234, 0, 0.12) !important; color: #FFEA00 !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(7) { border-color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.12) !important; color: #00E5FF !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(8) { border-color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.12) !important; color: #FF3D00 !important; }
-    div[data-testid="stTabs"] button[role="tab"]:nth-of-type(9) { border-color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.12) !important; color: #D500F9 !important; }
+    /* Sekme 1 */ div[data-testid="stHorizontalBlock"] div:nth-child(1) button { border-color: #FF4081 !important; color: #FF4081 !important; background-color: rgba(255, 64, 129, 0.1) !important; }
+    /* Sekme 2 */ div[data-testid="stHorizontalBlock"] div:nth-child(2) button { border-color: #00B0FF !important; color: #00B0FF !important; background-color: rgba(0, 176, 255, 0.1) !important; }
+    /* Sekme 3 */ div[data-testid="stHorizontalBlock"] div:nth-child(3) button { border-color: #00E676 !important; color: #00E676 !important; background-color: rgba(0, 230, 118, 0.1) !important; }
+    /* Sekme 4 */ div[data-testid="stHorizontalBlock"] div:nth-child(4) button { border-color: #FF9100 !important; color: #FF9100 !important; background-color: rgba(255, 145, 0, 0.1) !important; }
+    /* Sekme 5 */ div[data-testid="stHorizontalBlock"] div:nth-child(5) button { border-color: #FF1744 !important; color: #FF1744 !important; background-color: rgba(255, 23, 68, 0.1) !important; }
+    /* Sekme 6 */ div[data-testid="stHorizontalBlock"] div:nth-child(6) button { border-color: #FFEA00 !important; color: #FFEA00 !important; background-color: rgba(255, 234, 0, 0.1) !important; }
+    /* Sekme 7 */ div[data-testid="stHorizontalBlock"] div:nth-child(7) button { border-color: #00E5FF !important; color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.1) !important; }
+    /* Sekme 8 */ div[data-testid="stHorizontalBlock"] div:nth-child(8) button { border-color: #FF3D00 !important; color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.1) !important; }
+    /* Sekme 9 */ div[data-testid="stHorizontalBlock"] div:nth-child(9) button { border-color: #D500F9 !important; color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.1) !important; }
 
-    /* Hover ve Seçili Sekme Efektleri */
-    div[data-testid="stTabs"] button[role="tab"]:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15) !important;
-    }
-
-    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 0 10px currentColor !important;
-        font-weight: 800 !important;
+    div[data-testid="stHorizontalBlock"] button[key^="tab_btn_"]:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2) !important;
+        filter: brightness(1.2) !important;
     }
 
     /* Performans Matrisi Kart Tasarımı */
@@ -143,17 +101,8 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         margin-bottom: 10px;
     }
-    .kpi-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: #a0a5b5;
-        margin-bottom: 8px;
-    }
-    .kpi-value {
-        font-size: 32px;
-        font-weight: 800;
-        color: #ffffff;
-    }
+    .kpi-title { font-size: 14px; font-weight: 600; color: #a0a5b5; margin-bottom: 8px; }
+    .kpi-value { font-size: 32px; font-weight: 800; color: #ffffff; }
 
     .kpi-blue { border: 2px solid #00B0FF !important; box-shadow: 0 0 12px rgba(0, 176, 255, 0.25) !important; }
     .kpi-green { border: 2px solid #00E676 !important; box-shadow: 0 0 12px rgba(0, 230, 118, 0.25) !important; }
@@ -393,8 +342,13 @@ if sheets_dict is not None and len(sheet_names) > 0:
 
     st.markdown("---")
 
-    # SEKMELER (9 Sekme) - 2 Satıra Ayrılmış İsimler
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    # =========================================================
+    # 🎯 DİNAMİK RENKLİ VE İKİ SATIRLI SEKME SİSTEMİ
+    # =========================================================
+    if "active_tab" not in st.session_state:
+        st.session_state.active_tab = 1
+
+    tab_titles = [
         "👥 Temsilci\nÖzet Tablosu", 
         "💬 Temsilci\nYorumu", 
         "📞 Aksiyon\nÖzet Tablosu", 
@@ -404,10 +358,19 @@ if sheets_dict is not None and len(sheet_names) > 0:
         "🚶‍♂️ Gelme Oranı\nHedef",
         "🚫 Kriter Dışı\nHedef",
         "📈 Data\nAnaliz"
-    ])
+    ]
+
+    cols = st.columns(9)
+    for idx, col in enumerate(cols):
+        tab_num = idx + 1
+        with col:
+            if st.button(tab_titles[idx], key=f"tab_btn_{tab_num}", use_container_width=True):
+                st.session_state.active_tab = tab_num
+
+    active_tab = st.session_state.active_tab
 
     # 1. TABLO & GRAFİK: TEMSİLCİ PERFORMANSI
-    with tab1:
+    if active_tab == 1:
         st.subheader("Temsilci Bazlı Performans Özet Tablosu")
         if 'Görevi Alan' in df.columns and 'Görev Durumu' in df.columns:
             temsilci_ozet = df.groupby('Görevi Alan').agg(
@@ -416,9 +379,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 Ort_Aksiyon=('Aksiyon Sayısı', 'mean')
             ).reset_index()
 
-            # Dönüşüm Oranını Kriter Dışı sekmesindeki Rez. Alma Oranı (Rez. Alma Tarihi) kısmından al
             temsilci_ozet['Donusum_Orani_Val'] = temsilci_ozet['Görevi Alan'].astype(str).str.strip().map(rez_oran_dict).fillna(0)
-
             temsilci_ozet = temsilci_ozet.sort_values(by='Donusum_Orani_Val', ascending=False).reset_index(drop=True)
             temsilci_ozet['Ort_Aksiyon'] = temsilci_ozet['Ort_Aksiyon'].round(2)
             
@@ -476,7 +437,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
             st.plotly_chart(fig_temsilci, use_container_width=True)
 
     # 2. TABLO: TEMSİLCİ YORUMU
-    with tab2:
+    elif active_tab == 2:
         st.subheader("Temsilci Yorumları ve Performans Analizi")
         ty_sheet = None
         for s in sheet_names:
@@ -496,7 +457,6 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 temsilci_adi = str(row.iloc[0]).strip()
                 yorum_metni = str(row.iloc[1]) if len(row) > 1 and pd.notnull(row.iloc[1]) else "Yorum bulunamadı."
                 
-                # Rezervasyon Dönüşüm Oranını Kriter Dışı sekmesindeki Rez. Alma Oranı ile dinamik değiştir
                 if temsilci_adi in rez_oran_dict:
                     val = rez_oran_dict[temsilci_adi]
                     formatted_val = f"%{val:.1f}"
@@ -513,7 +473,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
             st.warning("⚠️ Excel dosyanızda 'Temsilci Yorumu' sekmesi bulunamadı.")
 
     # 3. TABLO: AKSİYON SONUÇLARI
-    with tab3:
+    elif active_tab == 3:
         st.subheader("Son Aksiyon ve Son Arama Dağılım Tablosu")
         col_t1, col_t2 = st.columns(2)
 
@@ -536,14 +496,14 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 st.table(arama_ozet)
 
     # 4. TABLO: İL & MARKA KIRILIMI
-    with tab4:
+    elif active_tab == 4:
         st.subheader("Bölgesel ve Marka Bazlı Görev Tablosu")
         if 'İl' in df.columns and 'Marka' in df.columns:
             il_marka_ozet = pd.crosstab(df['İl'], df['Marka'], margins=True, margins_name="TOPLAM")
             st.table(il_marka_ozet)
 
     # 5. TABLO & GRAFİK: REZERVASYON HEDEF
-    with tab5:
+    elif active_tab == 5:
         st.subheader("🎯 Rezervasyon Hedef Tablosu ve Performans Grafiği")
         target_sheet = None
         for s in sheet_names:
@@ -614,7 +574,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 st.table(rez_df)
 
     # 6. TABLO & GRAFİK: SATIŞ HEDEF
-    with tab6:
+    elif active_tab == 6:
         st.subheader("💰 Satış Hedef Tablosu ve Performans Grafiği")
         satis_sheet = None
         for s in sheet_names:
@@ -685,7 +645,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 st.table(satis_df)
 
     # 7. TABLO & GRAFİK: GELME ORANI HEDEF
-    with tab7:
+    elif active_tab == 7:
         st.subheader("🚶‍♂️ Gelme Oranı Hedef Tablosu ve Performans Grafiği")
         gelme_sheet = None
         for s in sheet_names:
@@ -759,7 +719,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 st.table(gelme_df)
 
     # 8. TABLO & GRAFİK: KRİTER DIŞI HEDEF
-    with tab8:
+    elif active_tab == 8:
         st.subheader("🚫 Kriter Dışı Hedef Tablosu ve Performans Grafiği")
         kriter_sheet = None
         for s in sheet_names:
@@ -833,7 +793,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 st.table(kriter_df)
 
     # 9. TABLO & GRAFİK: EXCEL'DEKİ "DATA ANALİZ" SEKME
-    with tab9:
+    elif active_tab == 9:
         st.subheader("📈 Data Analiz Tablosu ve Arama Sonuçları Grafiği")
         da_sheet = None
         for s in sheet_names:
