@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
+import re
 
 st.set_page_config(page_title="Verimlilik ve Performans Paneli", layout="wide")
 
@@ -107,7 +108,6 @@ sheets_dict, sheet_names = load_data_from_excel(EXCEL_FILE)
 if sheets_dict is not None and len(sheet_names) > 0:
     df_raw = sheets_dict[sheet_names[0]].copy()
 
-    # Sadece Sistem/Bot hesaplarını gizlemek isterseniz buraya yazabilirsiniz (Boş bırakıldı)
     haric_personel = ['CRM Admin', 'Luron AI API']
     
     if 'Görevi Alan' in df_raw.columns:
@@ -117,7 +117,44 @@ if sheets_dict is not None and len(sheet_names) > 0:
         temsilci_listesi = ["Tümü"]
 
     # -------------------------------------------------------------
-    # ⚙️ SOL MENÜ (3. GÖRSEL BİREBİR)
+    # KRİTER DIŞI SEKMEDEN REZERVASYON ALMA ORANINI ÇEKME
+    # -------------------------------------------------------------
+    rez_oran_dict = {}
+    kd_sheet = None
+    for s in sheet_names:
+        s_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+        if "kriter" in s_norm and "disi" in s_norm and "hedef" not in s_norm:
+            kd_sheet = s
+            break
+    
+    if kd_sheet is not None:
+        kd_df = sheets_dict[kd_sheet].copy()
+        first_col = kd_df.columns[0]
+        target_col = None
+        for col in kd_df.columns:
+            col_norm = str(col).lower()
+            if "rez" in col_norm and "alma" in col_norm and "oran" in col_norm and "tarihi" in col_norm and "randevu" not in col_norm:
+                target_col = col
+                break
+        if not target_col:
+            for col in kd_df.columns:
+                col_norm = str(col).lower()
+                if "rez" in col_norm and "alma" in col_norm and "oran" in col_norm:
+                    target_col = col
+                    break
+        
+        if target_col is not None:
+            for _, r in kd_df.iterrows():
+                rep = str(r[first_col]).strip()
+                v = r[target_col]
+                if pd.notnull(v):
+                    try:
+                        rez_oran_dict[rep] = float(v)
+                    except:
+                        pass
+
+    # -------------------------------------------------------------
+    # ⚙️ SOL MENÜ
     # -------------------------------------------------------------
     st.sidebar.markdown("### ⚙️ Veri Kontrol Paneli")
     secilen_temsilci = st.sidebar.selectbox(
@@ -301,12 +338,8 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 Ort_Aksiyon=('Aksiyon Sayısı', 'mean')
             ).reset_index()
 
-            if 'Son Aksiyon' in df.columns:
-                rezervasyon_sayilari = df[df['Son Aksiyon'] == 'Rezervasyon yapıldı'].groupby('Görevi Alan').size()
-                temsilci_ozet['Rezervasyon_Sayisi'] = temsilci_ozet['Görevi Alan'].map(rezervasyon_sayilari).fillna(0)
-                temsilci_ozet['Donusum_Orani_Val'] = (temsilci_ozet['Rezervasyon_Sayisi'] / temsilci_ozet['Toplam_Gorev']) * 100
-            else:
-                temsilci_ozet['Donusum_Orani_Val'] = (temsilci_ozet['Tamamlanan'] / temsilci_ozet['Toplam_Gorev']) * 100
+            # Dönüşüm Oranını Kriter Dışı sekmesindeki Rez. Alma Oranı (Rez. Alma Tarihi) kısmından al
+            temsilci_ozet['Donusum_Orani_Val'] = temsilci_ozet['Görevi Alan'].astype(str).str.strip().map(rez_oran_dict).fillna(0)
 
             temsilci_ozet = temsilci_ozet.sort_values(by='Donusum_Orani_Val', ascending=False).reset_index(drop=True)
             temsilci_ozet['Ort_Aksiyon'] = temsilci_ozet['Ort_Aksiyon'].round(2)
@@ -382,9 +415,15 @@ if sheets_dict is not None and len(sheet_names) > 0:
                     ty_df = ty_df[ty_df.iloc[:, 0].astype(str).str.strip() == secilen_temsilci]
 
             for idx, row in ty_df.iterrows():
-                temsilci_adi = str(row.iloc[0])
+                temsilci_adi = str(row.iloc[0]).strip()
                 yorum_metni = str(row.iloc[1]) if len(row) > 1 and pd.notnull(row.iloc[1]) else "Yorum bulunamadı."
                 
+                # Rezervasyon Dönüşüm Oranını Kriter Dışı sekmesindeki Rez. Alma Oranı ile dinamik değiştir
+                if temsilci_adi in rez_oran_dict:
+                    val = rez_oran_dict[temsilci_adi]
+                    formatted_val = f"%{val:.1f}"
+                    yorum_metni = re.sub(r'🔄 Rezervasyon Dönüşümü:\s*[\d,\.]*%?', f'🔄 Rezervasyon Dönüşümü: {formatted_val}', yorum_metni)
+
                 with st.expander(f"👤 **{temsilci_adi}** — Performans Yorumu", expanded=True):
                     for emoji in ['✅', '⚠️', '🎯', '🔄', '🚫', '📌']:
                         yorum_metni = yorum_metni.replace(emoji, f"\n{emoji}")
@@ -685,7 +724,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
 
                 display_kriter_df[kriter_gerceklesen_col] = raw_kriter_values.apply(lambda x: f"%{x:.0f}" if x.is_integer() else f"%{x:.1f}")
 
-                def get_kriter_status(val): return 'Yüksek/Riskli (>%20)' if val > 20 else 'İideal (<=%20)'
+                def get_kriter_status(val): return 'Yüksek/Riskli (>%20)' if val > 20 else 'İdeal (<=%20)'
                 def color_kriter_cell(val): return 'color: #FF1744; font-weight: bold; text-align: center;' if val > 20 else 'color: #00E676; font-weight: bold; text-align: center;'
 
                 styled_kriter_df = display_kriter_df.style.apply(
