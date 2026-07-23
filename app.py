@@ -17,7 +17,7 @@ def load_data_from_excel(file_path):
         return sheets, excel.sheet_names
     return None, []
 
-# Tüm Tabloları Fuşya Çerçeve İçine Alan + Sekmeleri Renkli Çerçeveli Yapan CSS
+# Tüm Tabloları Fuşya Çerçeve İçine Alan + Hücreleri Ortalayan CSS
 st.markdown("""
     <style>
     /* Tablo Hücre ve Başlık Hizalamaları */
@@ -55,93 +55,37 @@ st.markdown("""
         overflow: hidden !important;
     }
 
-    /* --- SEKME BAŞLIKLARI (RENKLİ ÇERÇEVELER) --- */
-    div[data-baseweb="tab-list"] {
+    /* Sekme Başlıklarını 2 Satıra Yayma & Renkli Çerçeveler */
+    button[data-baseweb="tab-tab-list"] {
         flex-wrap: wrap !important;
-        gap: 12px !important;
-        border-bottom: none !important;
-        padding-bottom: 8px !important;
+        gap: 10px !important;
+        justify-content: flex-start !important;
     }
-
-    /* Sekme Temel Buton Stili */
-    div[data-baseweb="tab-list"] button, div[data-baseweb="tab"] {
-        border-radius: 10px !important;
+    button[data-baseweb="tab"] {
+        white-space: normal !important;
+        height: auto !important;
+        padding: 10px 16px !important;
+        border-radius: 8px !important;
         border-style: solid !important;
-        border-width: 2px !important;
-        padding: 8px 16px !important;
-        font-weight: 700 !important;
-        font-size: 14px !important;
+        border-width: 1.5px !important;
+        font-weight: 600 !important;
         transition: all 0.3s ease !important;
-        background-color: #131722 !important;
     }
 
-    /* 1. Sekme - Pembe / Fuşya */
-    div[data-baseweb="tab-list"] > div:nth-child(1) button, div[data-baseweb="tab-list"] > button:nth-child(1) {
-        border-color: #FF4081 !important;
-        color: #FF4081 !important;
-        background-color: rgba(255, 64, 129, 0.12) !important;
-    }
+    /* Her Sekme İçin Farklı Çerçeve ve Arka Plan Renkleri */
+    button[data-baseweb="tab"]:nth-child(1) { border-color: #FF4081 !important; background-color: rgba(255, 64, 129, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(2) { border-color: #00B0FF !important; background-color: rgba(0, 176, 255, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(3) { border-color: #00E676 !important; background-color: rgba(0, 230, 118, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(4) { border-color: #FF9100 !important; background-color: rgba(255, 145, 0, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(5) { border-color: #FF1744 !important; background-color: rgba(255, 23, 68, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(6) { border-color: #FFEA00 !important; background-color: rgba(255, 234, 0, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(7) { border-color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(8) { border-color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.08) !important; }
+    button[data-baseweb="tab"]:nth-child(9) { border-color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.08) !important; }
 
-    /* 2. Sekme - Açık Mavi */
-    div[data-baseweb="tab-list"] > div:nth-child(2) button, div[data-baseweb="tab-list"] > button:nth-child(2) {
-        border-color: #00B0FF !important;
-        color: #00B0FF !important;
-        background-color: rgba(0, 176, 255, 0.12) !important;
-    }
-
-    /* 3. Sekme - Parlak Yeşil */
-    div[data-baseweb="tab-list"] > div:nth-child(3) button, div[data-baseweb="tab-list"] > button:nth-child(3) {
-        border-color: #00E676 !important;
-        color: #00E676 !important;
-        background-color: rgba(0, 230, 118, 0.12) !important;
-    }
-
-    /* 4. Sekme - Turuncu */
-    div[data-baseweb="tab-list"] > div:nth-child(4) button, div[data-baseweb="tab-list"] > button:nth-child(4) {
-        border-color: #FF9100 !important;
-        color: #FF9100 !important;
-        background-color: rgba(255, 145, 0, 0.12) !important;
-    }
-
-    /* 5. Sekme - Kırmızı */
-    div[data-baseweb="tab-list"] > div:nth-child(5) button, div[data-baseweb="tab-list"] > button:nth-child(5) {
-        border-color: #FF1744 !important;
-        color: #FF1744 !important;
-        background-color: rgba(255, 23, 68, 0.12) !important;
-    }
-
-    /* 6. Sekme - Sarı */
-    div[data-baseweb="tab-list"] > div:nth-child(6) button, div[data-baseweb="tab-list"] > button:nth-child(6) {
-        border-color: #FFEA00 !important;
-        color: #FFEA00 !important;
-        background-color: rgba(255, 234, 0, 0.12) !important;
-    }
-
-    /* 7. Sekme - Turkuaz */
-    div[data-baseweb="tab-list"] > div:nth-child(7) button, div[data-baseweb="tab-list"] > button:nth-child(7) {
-        border-color: #00E5FF !important;
-        color: #00E5FF !important;
-        background-color: rgba(0, 229, 255, 0.12) !important;
-    }
-
-    /* 8. Sekme - Koyu Turuncu/Kırmızı */
-    div[data-baseweb="tab-list"] > div:nth-child(8) button, div[data-baseweb="tab-list"] > button:nth-child(8) {
-        border-color: #FF3D00 !important;
-        color: #FF3D00 !important;
-        background-color: rgba(255, 61, 0, 0.12) !important;
-    }
-
-    /* 9. Sekme - Mor */
-    div[data-baseweb="tab-list"] > div:nth-child(9) button, div[data-baseweb="tab-list"] > button:nth-child(9) {
-        border-color: #D500F9 !important;
-        color: #D500F9 !important;
-        background-color: rgba(213, 0, 249, 0.12) !important;
-    }
-
-    /* Mouse ile üzerine gelince (Hover) yükselme ve parlama efekti */
-    div[data-baseweb="tab-list"] button:hover {
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 6px 15px rgba(255, 255, 255, 0.2) !important;
+    button[data-baseweb="tab"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
     }
 
     /* Performans Matrisi Kart Tasarımı */
