@@ -107,8 +107,9 @@ sheets_dict, sheet_names = load_data_from_excel(EXCEL_FILE)
 if sheets_dict is not None and len(sheet_names) > 0:
     df_raw = sheets_dict[sheet_names[0]].copy()
 
-    # HARİÇ TUTULACAK / SİLİNMİŞ KİŞİLER
-    haric_personel = ['CRM Admin', 'Luron AI API', 'Aleyna Daşdemir', 'Zeynep Güzel']
+    # Sadece Sistem/Bot hesaplarını gizlemek isterseniz buraya yazabilirsiniz (Boş bırakıldı)
+    haric_personel = ['CRM Admin', 'Luron AI API']
+    
     if 'Görevi Alan' in df_raw.columns:
         df_raw = df_raw[~df_raw['Görevi Alan'].astype(str).str.strip().isin(haric_personel)].copy()
         temsilci_listesi = ["Tümü"] + sorted([str(x).strip() for x in df_raw['Görevi Alan'].dropna().unique()])
@@ -684,7 +685,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
 
                 display_kriter_df[kriter_gerceklesen_col] = raw_kriter_values.apply(lambda x: f"%{x:.0f}" if x.is_integer() else f"%{x:.1f}")
 
-                def get_kriter_status(val): return 'Yüksek/Riskli (>%20)' if val > 20 else 'İdeal (<=%20)'
+                def get_kriter_status(val): return 'Yüksek/Riskli (>%20)' if val > 20 else 'İideal (<=%20)'
                 def color_kriter_cell(val): return 'color: #FF1744; font-weight: bold; text-align: center;' if val > 20 else 'color: #00E676; font-weight: bold; text-align: center;'
 
                 styled_kriter_df = display_kriter_df.style.apply(
