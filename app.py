@@ -875,7 +875,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
         else:
             st.warning("⚠️ Excel dosyanızda 'Data Analiz' sekmesi bulunamadı.")
 
-    # 10. TABLO & GRAFİK: ÇAĞRI PERFORMANS SEKME (YENİ EKLENDİ)
+    # 10. TABLO & GRAFİK: ÇAĞRILARA ÖZEL RENKLENDİRİLMİŞ TABLO
     elif active_tab == 10:
         st.subheader("📞 Çağrı Performans Tablosu ve Detay Grafiği")
         cagri_sheet = None
@@ -895,22 +895,70 @@ if sheets_dict is not None and len(sheet_names) > 0:
                         cagri_df = filtered_cagri
 
             display_cagri = cagri_df.copy()
-            first_cagri_col = display_cagri.columns[0]
-            
-            # Sayısal sütunları yuvarlayarak temiz biçimde gösterme
-            for col in display_cagri.columns:
-                if col != first_cagri_col:
-                    display_cagri[col] = pd.to_numeric(display_cagri[col], errors='coerce').fillna(0).round(1)
 
+            # EXCEL BİREBİR RENKLENDİRME FONKSİYONU
+            def color_cagri_matrix(df):
+                def color_row(row):
+                    styles = ['text-align: center;'] * len(row)
+                    temsilci = str(row.iloc[0]).strip()
+                    if temsilci.lower() == 'ortalama':
+                        return ['text-align: center; font-weight: bold; background-color: rgba(255, 255, 255, 0.1);'] * len(row)
+                    
+                    green = 'background-color: rgba(0, 230, 118, 0.25); color: #00E676; font-weight: bold; text-align: center;'
+                    red = 'background-color: rgba(255, 23, 68, 0.25); color: #FF1744; font-weight: bold; text-align: center;'
+                    yellow = 'background-color: rgba(255, 234, 0, 0.25); color: #FFEA00; font-weight: bold; text-align: center;'
+                    
+                    for i, col in enumerate(df.columns):
+                        if i == 0:
+                            continue
+                        val = row[col]
+                        try:
+                            val = float(val)
+                        except:
+                            continue
+                        
+                        c_norm = col.lower().strip()
+                        
+                        if 'toplam çağrı' in c_norm and 'ortalama' not in c_norm:
+                            styles[i] = green if val >= 150 else red
+                        elif 'toplam konuşma süresi' in c_norm and 'ortalama' not in c_norm:
+                            styles[i] = green if val >= 240 else red
+                        elif 'ortalama konuşma' in c_norm:
+                            styles[i] = green if val >= 1.6 else red
+                        elif 'cevaplanan' in c_norm:
+                            if val >= 10:
+                                styles[i] = green
+                            elif val >= 7:
+                                styles[i] = yellow
+                            else:
+                                styles[i] = red
+                        elif 'kaçan' in c_norm:
+                            styles[i] = green if val <= 1.0 else red
+                        elif 'giden' in c_norm:
+                            styles[i] = green if val >= 210 else red
+                        elif 'hazır' in c_norm:
+                            styles[i] = green if val <= 60 else red
+                        elif 'mola' in c_norm or 'yemek' in c_norm:
+                            styles[i] = green if val <= 90 else red
+                            
+                    return styles
+
+                styler = df.style.apply(color_row, axis=1)
+                format_dict = {col: "{:.1f}" for col in df.columns[1:]}
+                styler = styler.format(format_dict).hide(axis="index")
+                return styler
+
+            styled_cagri = color_cagri_matrix(display_cagri)
             col_config_cagri = {c: st.column_config.Column(alignment="center") for c in display_cagri.columns}
             calc_height_cagri = (len(display_cagri) + 1) * 35 + 38
-            styled_cagri = display_cagri.style.hide(axis="index")
+            
             st.dataframe(styled_cagri, use_container_width=True, height=calc_height_cagri, column_config=col_config_cagri)
 
             st.markdown("---")
             st.markdown("### 📊 Temsilci Bazlı Çağrı ve Görüşme Performansı Grafiği")
 
             chart_cagri = cagri_df[cagri_df.iloc[:, 0].astype(str).str.lower() != 'ortalama'].copy()
+            first_cagri_col = chart_cagri.columns[0]
             metric_cols = [c for c in ['Toplam Çağrı', 'Giden Arama Denemesi', 'Cevaplanan'] if c in chart_cagri.columns]
 
             if metric_cols:
