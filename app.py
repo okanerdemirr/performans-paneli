@@ -875,7 +875,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
         else:
             st.warning("⚠️ Excel dosyanızda 'Data Analiz' sekmesi bulunamadı.")
 
-    # 10. TABLO & GRAFİK: ÇAĞRILARA ÖZEL RENKLENDİRİLMİŞ TABLO
+    # 10. TABLO & GRAFİK: HER BİR ÇAĞRI KONU BAŞLIĞI İÇİN AYRI AYRI ALT ALTA GRAFİKLER
     elif active_tab == 10:
         st.subheader("📞 Çağrı Performans Tablosu ve Detay Grafiği")
         cagri_sheet = None
@@ -955,37 +955,50 @@ if sheets_dict is not None and len(sheet_names) > 0:
             st.dataframe(styled_cagri, use_container_width=True, height=calc_height_cagri, column_config=col_config_cagri)
 
             st.markdown("---")
-            st.markdown("### 📊 Temsilci Bazlı Çağrı ve Görüşme Performansı Grafiği")
+            st.markdown("### 📊 Her Bir Konu Başlığı İçin Temsilci Performans Grafikleri")
 
             chart_cagri = cagri_df[cagri_df.iloc[:, 0].astype(str).str.lower() != 'ortalama'].copy()
             first_cagri_col = chart_cagri.columns[0]
-            metric_cols = [c for c in ['Toplam Çağrı', 'Giden Arama Denemesi', 'Cevaplanan'] if c in chart_cagri.columns]
+            metric_cols = [c for c in chart_cagri.columns if c != first_cagri_col]
 
-            if metric_cols:
-                for col in metric_cols:
-                    chart_cagri[col] = pd.to_numeric(chart_cagri[col], errors='coerce').fillna(0).round(1)
+            # Başlıklara Özel Renk Haritası
+            metric_colors = {
+                'Toplam Çağrı': '#00B0FF',
+                'Toplam Konuşma Süresi': '#00E676',
+                'Toplam Ortalama Konuşma Süresi': '#FFEA00',
+                'Cevaplanan': '#00E5FF',
+                'Kaçan Çağrılar': '#FF1744',
+                'Giden Arama Denemesi': '#7C4DFF',
+                'Hazır': '#FF9100',
+                'Mola + Yemek': '#D500F9'
+            }
 
-                chart_cagri_melted = chart_cagri.melt(
-                    id_vars=[first_cagri_col],
-                    value_vars=metric_cols,
-                    var_name='Çağrı Metriği',
-                    value_name='Sayı / Ortalama'
+            # Her konu başlığı için ayrı bir grafik alt alta üretilir
+            for col in metric_cols:
+                chart_sub = chart_cagri[[first_cagri_col, col]].copy()
+                chart_sub[col] = pd.to_numeric(chart_sub[col], errors='coerce').fillna(0).round(1)
+                
+                bar_color = metric_colors.get(col, '#00B0FF')
+
+                fig_metric = px.bar(
+                    chart_sub,
+                    x=first_cagri_col,
+                    y=col,
+                    text=chart_sub[col].apply(lambda x: f"{x:.1f}"),
+                    title=f"🔹 {col} Performance Grafiği"
                 )
-
-                color_cagri_map = {
-                    'Toplam Çağrı': '#00B0FF',
-                    'Giden Arama Denemesi': '#7C4DFF',
-                    'Cevaplanan': '#00E676'
-                }
-
-                fig_cagri = px.bar(
-                    chart_cagri_melted, x=first_cagri_col, y='Sayı / Ortalama',
-                    color='Çağrı Metriği', barmode='group', color_discrete_map=color_cagri_map,
-                    text='Sayı / Ortalama', title="Temsilcilere Göre Toplam Çağrı, Deneme ve Cevaplama Hacmi"
+                fig_metric.update_traces(
+                    marker_color=bar_color,
+                    textposition='outside'
                 )
-                fig_cagri.update_layout(template="plotly_dark", xaxis_title="Temsilci", yaxis_title="Adet / Ortalama")
-                fig_cagri.update_traces(textposition='outside')
-                st.plotly_chart(fig_cagri, use_container_width=True)
+                fig_metric.update_layout(
+                    template="plotly_dark",
+                    xaxis_title="Temsilci",
+                    yaxis_title=col,
+                    height=340,
+                    margin=dict(l=20, r=20, t=40, b=20)
+                )
+                st.plotly_chart(fig_metric, use_container_width=True)
         else:
             st.warning("⚠️ Excel dosyanızda 'Çağrı Performans' sekmesi bulunamadı.")
 else:
