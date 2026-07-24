@@ -59,7 +59,7 @@ st.markdown("""
         white-space: pre-wrap !important;
         text-align: center !important;
         line-height: 1.25 !important;
-        font-size: 13px !important;
+        font-size: 12px !important;
         margin: 0 !important;
     }
 
@@ -72,6 +72,7 @@ st.markdown("""
     /* Sekme 7 */ div[data-testid="stHorizontalBlock"] div:nth-child(7) button { border-color: #00E5FF !important; color: #00E5FF !important; background-color: rgba(0, 229, 255, 0.1) !important; }
     /* Sekme 8 */ div[data-testid="stHorizontalBlock"] div:nth-child(8) button { border-color: #FF3D00 !important; color: #FF3D00 !important; background-color: rgba(255, 61, 0, 0.1) !important; }
     /* Sekme 9 */ div[data-testid="stHorizontalBlock"] div:nth-child(9) button { border-color: #D500F9 !important; color: #D500F9 !important; background-color: rgba(213, 0, 249, 0.1) !important; }
+    /* Sekme 10 */ div[data-testid="stHorizontalBlock"] div:nth-child(10) button { border-color: #7C4DFF !important; color: #7C4DFF !important; background-color: rgba(124, 77, 255, 0.1) !important; }
 
     div[data-testid="stHorizontalBlock"] button[key^="tab_btn_"]:hover {
         transform: translateY(-3px) !important;
@@ -343,7 +344,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
     st.markdown("---")
 
     # =========================================================
-    # 🎯 DİNAMİK RENKLİ VE İKİ SATIRLI SEKME SİSTEMİ
+    # 🎯 DİNAMİK RENKLİ VE İKİ SATIRLI SEKME SİSTEMİ (10 SEKME)
     # =========================================================
     if "active_tab" not in st.session_state:
         st.session_state.active_tab = 1
@@ -357,10 +358,11 @@ if sheets_dict is not None and len(sheet_names) > 0:
         "💰 Satış\nHedef",
         "🚶‍♂️ Gelme Oranı\nHedef",
         "🚫 Kriter Dışı\nHedef",
-        "📈 Data\nAnaliz"
+        "📈 Data\nAnaliz",
+        "📞 Çağrı\nPerformansı"
     ]
 
-    cols = st.columns(9)
+    cols = st.columns(10)
     for idx, col in enumerate(cols):
         tab_num = idx + 1
         with col:
@@ -872,5 +874,71 @@ if sheets_dict is not None and len(sheet_names) > 0:
                 st.plotly_chart(fig_da, use_container_width=True)
         else:
             st.warning("⚠️ Excel dosyanızda 'Data Analiz' sekmesi bulunamadı.")
+
+    # 10. TABLO & GRAFİK: ÇAĞRI PERFORMANS SEKME (YENİ EKLENDİ)
+    elif active_tab == 10:
+        st.subheader("📞 Çağrı Performans Tablosu ve Detay Grafiği")
+        cagri_sheet = None
+        for s in sheet_names:
+            name_norm = str(s).strip().lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+            if "cagri" in name_norm and "performans" in name_norm:
+                cagri_sheet = s
+                break
+
+        if cagri_sheet is not None:
+            cagri_df = sheets_dict[cagri_sheet].copy()
+            if len(cagri_df.columns) > 0:
+                cagri_df = cagri_df[~cagri_df.iloc[:, 0].astype(str).isin(haric_personel)].copy()
+                if secilen_temsilci != "Tümü":
+                    filtered_cagri = cagri_df[cagri_df.iloc[:, 0].astype(str).str.strip() == secilen_temsilci]
+                    if not filtered_cagri.empty:
+                        cagri_df = filtered_cagri
+
+            display_cagri = cagri_df.copy()
+            first_cagri_col = display_cagri.columns[0]
+            
+            # Sayısal sütunları yuvarlayarak temiz biçimde gösterme
+            for col in display_cagri.columns:
+                if col != first_cagri_col:
+                    display_cagri[col] = pd.to_numeric(display_cagri[col], errors='coerce').fillna(0).round(1)
+
+            col_config_cagri = {c: st.column_config.Column(alignment="center") for c in display_cagri.columns}
+            calc_height_cagri = (len(display_cagri) + 1) * 35 + 38
+            styled_cagri = display_cagri.style.hide(axis="index")
+            st.dataframe(styled_cagri, use_container_width=True, height=calc_height_cagri, column_config=col_config_cagri)
+
+            st.markdown("---")
+            st.markdown("### 📊 Temsilci Bazlı Çağrı ve Görüşme Performansı Grafiği")
+
+            chart_cagri = cagri_df[cagri_df.iloc[:, 0].astype(str).str.lower() != 'ortalama'].copy()
+            metric_cols = [c for c in ['Toplam Çağrı', 'Giden Arama Denemesi', 'Cevaplanan'] if c in chart_cagri.columns]
+
+            if metric_cols:
+                for col in metric_cols:
+                    chart_cagri[col] = pd.to_numeric(chart_cagri[col], errors='coerce').fillna(0).round(1)
+
+                chart_cagri_melted = chart_cagri.melt(
+                    id_vars=[first_cagri_col],
+                    value_vars=metric_cols,
+                    var_name='Çağrı Metriği',
+                    value_name='Sayı / Ortalama'
+                )
+
+                color_cagri_map = {
+                    'Toplam Çağrı': '#00B0FF',
+                    'Giden Arama Denemesi': '#7C4DFF',
+                    'Cevaplanan': '#00E676'
+                }
+
+                fig_cagri = px.bar(
+                    chart_cagri_melted, x=first_cagri_col, y='Sayı / Ortalama',
+                    color='Çağrı Metriği', barmode='group', color_discrete_map=color_cagri_map,
+                    text='Sayı / Ortalama', title="Temsilcilere Göre Toplam Çağrı, Deneme ve Cevaplama Hacmi"
+                )
+                fig_cagri.update_layout(template="plotly_dark", xaxis_title="Temsilci", yaxis_title="Adet / Ortalama")
+                fig_cagri.update_traces(textposition='outside')
+                st.plotly_chart(fig_cagri, use_container_width=True)
+        else:
+            st.warning("⚠️ Excel dosyanızda 'Çağrı Performans' sekmesi bulunamadı.")
 else:
     st.error("⚠️ Proje klasöründe 'veri.xlsx' dosyası bulunamadı. Lütfen GitHub'a 'veri.xlsx' dosyanızı yüklediğinizden emin olun.")
