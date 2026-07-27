@@ -162,7 +162,7 @@ if sheets_dict is not None and len(sheet_names) > 0:
                         pass
 
     # -------------------------------------------------------------
-    # ⚙️ SOL MENÜ
+    # ⚙️ SOL MENÜ (TEMSİLCİ VE DİNAMİK TAKVİM FİLTRESİ)
     # -------------------------------------------------------------
     st.sidebar.markdown("### ⚙️ Veri Kontrol Paneli")
     secilen_temsilci = st.sidebar.selectbox(
@@ -171,15 +171,41 @@ if sheets_dict is not None and len(sheet_names) > 0:
         index=0
     )
 
+    # TAKVİM / TARİH ARALIĞI FİLTRESİ
+    tarih_araligi = None
+    if 'Görev Tarihi' in df_raw.columns:
+        df_raw['Görev Tarihi_dt'] = pd.to_datetime(df_raw['Görev Tarihi'], errors='coerce')
+        valid_dates = df_raw['Görev Tarihi_dt'].dropna()
+        if not valid_dates.empty:
+            min_date = valid_dates.min().date()
+            max_date = valid_dates.max().date()
+            
+            tarih_araligi = st.sidebar.date_input(
+                "📅 Tarih Aralığı Seçin",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date
+            )
+
     if st.sidebar.button("🔄 Verileri Yenile / Sıfırla", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
-    # Filtreleme Mantığı
-    if secilen_temsilci != "Tümü" and 'Görevi Alan' in df_raw.columns:
-        df = df_raw[df_raw['Görevi Alan'].astype(str).str.strip() == secilen_temsilci].copy()
-    else:
-        df = df_raw.copy()
+    # --- FİLTRELEME MANTIĞI (TEMSİLCİ + TARİH) ---
+    df = df_raw.copy()
+
+    # 1. Temsilci Filtresi
+    if secilen_temsilci != "Tümü" and 'Görevi Alan' in df.columns:
+        df = df[df['Görevi Alan'].astype(str).str.strip() == secilen_temsilci]
+
+    # 2. Tarih Filtresi
+    if tarih_araligi is not None and isinstance(tarih_araligi, (list, tuple)):
+        if len(tarih_araligi) == 2:
+            start_date, end_date = tarih_araligi
+            df = df[(df['Görev Tarihi_dt'].dt.date >= start_date) & (df['Görev Tarihi_dt'].dt.date <= end_date)]
+        elif len(tarih_araligi) == 1:
+            single_date = tarih_araligi[0]
+            df = df[df['Görev Tarihi_dt'].dt.date == single_date]
 
     # --- ANA SAYFA BAŞLIK VE HESAPLAMALAR ---
     st.title("📊 Performans ve Özet Tablolar Paneli")
